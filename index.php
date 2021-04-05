@@ -118,9 +118,9 @@
             </div>
 
     <script defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhkunOh-ALc_afRm5EA9gKnZAAr_-bFWk&callback=initMap"
+        src="https://maps.googleapis.com/maps/api/js?key=xxxxxxxxxxxxxxxxxxxxxx&callback=initMap"
 
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD7KEQSz46dMcofouwbM-V54Kk_GWIo8tY&callback=initMap">
+        src="https://maps.googleapis.com/maps/api/js?key=xxxxxxxxxxxxxxxxxx&callback=initMap">
     </script>
     <script type="text/javascript" 
         src="scripts/modals.js"></script>
