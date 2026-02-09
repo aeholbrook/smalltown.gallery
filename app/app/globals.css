@@ -1,26 +1,160 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode (Tailwind v4) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light mode (default) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafafa;
+  --foreground: #09090b;
+}
+
+/* Dark mode */
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Slide-up animation for modals */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
+
+/* Mapbox popup overrides — always dark since the map is always dark */
+.map-popup-container .mapboxgl-popup-content {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.map-popup-container .mapboxgl-popup-tip {
+  border-top-color: #18181b;
+}
+
+.map-popup-container .mapboxgl-popup-close-button {
+  color: #a1a1aa;
+  font-size: 18px;
+  padding: 4px 8px;
+  right: 2px;
+  top: 2px;
+}
+
+.map-popup-container .mapboxgl-popup-close-button:hover {
+  color: #ffffff;
+  background: transparent;
+}
+
+.map-popup {
+  padding: 12px 16px;
+}
+
+.map-popup-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fafafa;
+  margin: 0 0 6px;
+}
+
+.map-popup-years {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.map-popup-link {
+  display: block;
+  font-size: 13px;
+  color: #a1a1aa;
+  text-decoration: none;
+  padding: 4px 8px;
+  margin: 0 -8px;
+  border-radius: 4px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.map-popup-link:hover {
+  background: #27272a;
+  color: #fbbf24;
+}
+
+.map-popup-link em {
+  font-style: italic;
+  color: #71717a;
+}
+
+.map-popup-link:hover em {
+  color: #a1a1aa;
+}
+
+.map-popup-empty {
+  font-size: 13px;
+  color: #71717a;
+  margin: 0;
+}
+
+/* Mapbox navigation control overrides */
+.mapboxgl-ctrl-group {
+  background: #18181b !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 6px !important;
+}
+
+.mapboxgl-ctrl-group button {
+  border-color: #3f3f46 !important;
+}
+
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid #3f3f46 !important;
+}
+
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(1);
+}
+
+/* PhotoSwipe — always dark background for viewing photos */
+.pswp {
+  --pswp-bg: #09090b;
+  --pswp-icon-color: #a1a1aa;
+  --pswp-icon-color-secondary: #3f3f46;
+  --pswp-icon-stroke-color: #a1a1aa;
+}
+
+.pswp__counter {
+  color: #a1a1aa;
+  font-size: 14px;
+}
+
+/* Rolling gallery sidebars — hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
