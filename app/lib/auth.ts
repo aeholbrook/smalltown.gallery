@@ -5,8 +5,11 @@ import { compare } from 'bcryptjs'
 import { prisma } from './db'
 import { authConfig } from './auth.config'
 
+const AUTH_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   ...authConfig,
+  secret: AUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   session: { strategy: 'jwt' },
   providers: [
