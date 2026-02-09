@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { Link2, Unlink, ImageIcon } from 'lucide-react'
-import { connectGallery, disconnectGallery } from '@/lib/actions/admin'
+import { claimGallery, connectGallery, disconnectGallery } from '@/lib/actions/admin'
 
 interface User {
   id: string
@@ -16,6 +16,7 @@ interface ConnectGalleryCardProps {
   photographer: string
   photoCount: number
   connectedUser: { id: string; name: string } | null
+  claimable: boolean
   users: User[]
 }
 
@@ -25,13 +26,16 @@ export function ConnectGalleryCard({
   photographer,
   photoCount,
   connectedUser,
+  claimable,
   users,
 }: ConnectGalleryCardProps) {
   const [connectState, connectAction, connectPending] = useActionState(connectGallery, { error: null })
+  const [claimState, claimAction, claimPending] = useActionState(claimGallery, { error: null })
   const [disconnectState, disconnectAction, disconnectPending] = useActionState(disconnectGallery, { error: null })
   const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || '')
+  const [publishOnClaim, setPublishOnClaim] = useState(false)
 
-  const error = connectState?.error || disconnectState?.error
+  const error = connectState?.error || claimState?.error || disconnectState?.error
 
   return (
     <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
@@ -56,22 +60,61 @@ export function ConnectGalleryCard({
 
       {connectedUser ? (
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-sm text-green-700 dark:text-green-400">
+          <span className={`inline-flex items-center gap-1.5 text-sm ${claimable ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'}`}>
             <Link2 size={14} />
-            Connected to {connectedUser.name}
+            {claimable ? `Placeholder: ${connectedUser.name}` : `Connected to ${connectedUser.name}`}
           </span>
-          <form action={disconnectAction}>
-            <input type="hidden" name="townName" value={townName} />
-            <input type="hidden" name="year" value={year} />
-            <button
-              type="submit"
-              disabled={disconnectPending}
-              className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
-            >
-              <Unlink size={12} />
-              {disconnectPending ? 'Disconnecting...' : 'Disconnect'}
-            </button>
-          </form>
+          <div className="flex items-end gap-2">
+            {claimable && (
+              <form action={claimAction} className="flex items-end gap-2">
+                <input type="hidden" name="townName" value={townName} />
+                <input type="hidden" name="year" value={year} />
+                {publishOnClaim && <input type="hidden" name="publishOnClaim" value="1" />}
+                <select
+                  name="userId"
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2 py-1.5 text-xs text-zinc-900 dark:text-white focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                >
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={claimPending || users.length === 0}
+                  className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-50 transition-colors"
+                >
+                  <Link2 size={12} />
+                  {claimPending ? 'Claiming...' : 'Claim'}
+                </button>
+                <label className="inline-flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={publishOnClaim}
+                    onChange={(e) => setPublishOnClaim(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-zinc-300 dark:border-zinc-700"
+                  />
+                  Publish on claim
+                </label>
+              </form>
+            )}
+
+            <form action={disconnectAction}>
+              <input type="hidden" name="townName" value={townName} />
+              <input type="hidden" name="year" value={year} />
+              <button
+                type="submit"
+                disabled={disconnectPending}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+              >
+                <Unlink size={12} />
+                {disconnectPending ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            </form>
+          </div>
         </div>
       ) : (
         <form action={connectAction} className="flex items-end gap-2">

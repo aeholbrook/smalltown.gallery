@@ -460,6 +460,131 @@ export async function bulkDisconnectGalleries(
   return { error: null }
 }
 
+export async function claimGallery(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const session = await auth()
+  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    return { error: 'Unauthorized' }
+  }
+
+  const townName = formData.get('townName') as string
+  const year = parseInt(formData.get('year') as string)
+  const userId = formData.get('userId') as string
+  const publishOnClaim = formData.get('publishOnClaim') === '1'
+
+  if (!townName || !year || !userId) {
+    return { error: 'Missing required fields.' }
+  }
+
+  const town = await prisma.town.findUnique({ where: { name: townName } })
+  if (!town) return { error: 'Town not found.' }
+
+  const targetUser = await prisma.user.findUnique({ where: { id: userId } })
+  if (!targetUser) return { error: 'Selected user not found.' }
+  if (targetUser.role === 'PENDING') return { error: 'User must be approved before claiming galleries.' }
+
+  const project = await prisma.project.findFirst({
+    where: { townId: town.id, year },
+    include: { user: true },
+  })
+  if (!project) return { error: 'No project found for this town/year.' }
+  if (project.user.role !== 'PENDING') {
+    return { error: 'Only placeholder galleries can be claimed.' }
+  }
+
+  await prisma.$transaction([
+    prisma.project.update({
+      where: { id: project.id },
+      data: {
+        userId: targetUser.id,
+        ...(publishOnClaim ? { published: true } : {}),
+      },
+    }),
+    prisma.photo.updateMany({
+      where: { projectId: project.id },
+      data: { userId: targetUser.id },
+    }),
+  ])
+
+  revalidatePath('/admin/connect')
+  revalidatePath('/admin/projects')
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
+  return { error: null }
+}
+
+export async function bulkClaimGalleries(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const session = await auth()
+  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    return { error: 'Unauthorized' }
+  }
+
+  const userId = formData.get('userId') as string
+  const galleriesJson = formData.get('galleries') as string
+  const publishOnClaim = formData.get('publishOnClaim') === '1'
+
+  if (!userId || !galleriesJson) {
+    return { error: 'Missing required fields.' }
+  }
+
+  const targetUser = await prisma.user.findUnique({ where: { id: userId } })
+  if (!targetUser) return { error: 'Selected user not found.' }
+  if (targetUser.role === 'PENDING') return { error: 'User must be approved before claiming galleries.' }
+
+  let galleries: { townName: string; year: number }[]
+  try {
+    galleries = JSON.parse(galleriesJson)
+  } catch {
+    return { error: 'Invalid gallery data.' }
+  }
+  if (galleries.length === 0) return { error: 'No galleries selected.' }
+
+  let claimed = 0
+
+  for (const { townName, year } of galleries) {
+    const town = await prisma.town.findUnique({ where: { name: townName } })
+    if (!town) continue
+
+    const project = await prisma.project.findFirst({
+      where: { townId: town.id, year },
+      include: { user: true },
+    })
+    if (!project) continue
+    if (project.user.role !== 'PENDING') continue
+
+    await prisma.$transaction([
+      prisma.project.update({
+        where: { id: project.id },
+        data: {
+          userId: targetUser.id,
+          ...(publishOnClaim ? { published: true } : {}),
+        },
+      }),
+      prisma.photo.updateMany({
+        where: { projectId: project.id },
+        data: { userId: targetUser.id },
+      }),
+    ])
+    claimed++
+  }
+
+  revalidatePath('/admin/connect')
+  revalidatePath('/admin/projects')
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
+
+  if (claimed === 0) {
+    return { error: 'No claimable galleries found.' }
+  }
+
+  return { error: null }
+}
+
 export async function disconnectGallery(
   _prevState: ActionState,
   formData: FormData

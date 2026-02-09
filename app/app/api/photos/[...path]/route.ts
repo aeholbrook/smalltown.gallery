@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
-
-const TOWNS_ROOT = path.join(process.cwd(), '..', 'towns')
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg'])
+const LEGACY_PHOTOS_BASE_URL = process.env.LEGACY_PHOTOS_BASE_URL
 
 export async function GET(
   _request: NextRequest,
@@ -21,35 +18,30 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 })
   }
 
-  const ext = path.extname(filename).toLowerCase()
+  const ext = filename.includes('.')
+    ? filename.slice(filename.lastIndexOf('.')).toLowerCase()
+    : ''
   if (!ALLOWED_EXTENSIONS.has(ext)) {
     return new NextResponse('Not Found', { status: 404 })
   }
 
-  if (filename.includes('..') || townName.includes('..') || year.includes('..')) {
+  if (
+    filename.includes('..') ||
+    townName.includes('..') ||
+    year.includes('..') ||
+    townName.includes('/') ||
+    filename.includes('/')
+  ) {
     return new NextResponse('Not Found', { status: 404 })
   }
 
-  const filePath = path.join(TOWNS_ROOT, townName, year, filename)
-  const resolved = path.resolve(filePath)
-  if (!resolved.startsWith(path.resolve(TOWNS_ROOT))) {
-    return new NextResponse('Not Found', { status: 404 })
+  // In production (Vercel), serve legacy filesystem photos from an external origin
+  // to avoid bundling large local directories into serverless functions.
+  if (LEGACY_PHOTOS_BASE_URL) {
+    const base = LEGACY_PHOTOS_BASE_URL.replace(/\/+$/, '')
+    const target = `${base}/${encodeURIComponent(townName)}/${year}/${encodeURIComponent(filename)}`
+    return NextResponse.redirect(target, 307)
   }
 
-  try {
-    const stat = await fs.stat(filePath)
-    const fileBuffer = await fs.readFile(filePath)
-
-    return new NextResponse(fileBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/jpeg',
-        'Content-Length': String(stat.size),
-        'Cache-Control': 'public, max-age=31536000, immutable',
-        'Last-Modified': stat.mtime.toUTCString(),
-      },
-    })
-  } catch {
-    return new NextResponse('Not Found', { status: 404 })
-  }
+  return new NextResponse('Not Found', { status: 404 })
 }
