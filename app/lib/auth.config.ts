@@ -3,6 +3,12 @@
 
 import type { NextAuthConfig } from 'next-auth'
 
+declare module 'next-auth' {
+  interface User {
+    role?: string
+  }
+}
+
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -16,10 +22,9 @@ export const authConfig = {
 
       if (isOnDashboard) {
         if (isLoggedIn) return true
-        return false // Redirect unauthenticated users to login page
+        return false
       } else if (isOnAdmin) {
-        // Check if user has admin role
-        if (isLoggedIn && auth.user.role === 'ADMIN') return true
+        if (isLoggedIn && auth?.user?.role === 'ADMIN') return true
         return false
       } else if (isLoggedIn) {
         return true
@@ -42,5 +47,5 @@ export const authConfig = {
       return session
     },
   },
-  providers: [], // Add providers in auth.ts
+  providers: [],
 } satisfies NextAuthConfig
