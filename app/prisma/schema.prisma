@@ -25,6 +25,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Photographer profile (markdown supported)
+  bio           String?   @db.Text  // Markdown bio
+  website       String?   // Personal website URL
+  location      String?   // City/state
+  profilePhotoUrl String? // Optional profile photo
+
   projects      Project[]
   photos        Photo[]
   accounts      Account[]
@@ -82,8 +88,17 @@ model Town {
   state       String    @default("Illinois")
   latitude    Float
   longitude   Float
-  description String?   @db.Text
+
+  // Rich town information (markdown supported)
+  description String?   @db.Text  // Markdown description
+  history     String?   @db.Text  // Markdown historical context
   population  Int?
+  founded     Int?      // Year founded
+  county      String?
+
+  // Media
+  thumbnailUrl String?  // Town thumbnail for map/cards
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -97,12 +112,21 @@ model Project {
   id            String    @id @default(cuid())
   townId        String
   year          Int
-  photographer  String
-  description   String?   @db.Text
+  photographer  String    // Cached from user.name for display
   userId        String
   published     Boolean   @default(false)
   featuredPhotoId String?
   photoCount    Int       @default(0)
+
+  // Rich project content (markdown supported)
+  title         String?   // Optional custom title (default: "Town Name Year")
+  description   String?   @db.Text  // Markdown project description/artist statement
+  notes         String?   @db.Text  // Markdown field notes, process, reflections
+
+  // Metadata
+  startDate     DateTime? // When photography began
+  endDate       DateTime? // When photography ended
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -122,15 +146,24 @@ model Photo {
   projectId   String
   userId      String
   filename    String
+
+  // Rich photo content (markdown supported for caption)
   title       String?
-  caption     String?   @db.Text
+  caption     String?   @db.Text  // Markdown caption with story/context
+  location    String?   // Specific location within town
+  dateTaken   DateTime? // When photo was taken (from EXIF or manual)
+
+  // Storage
   blobUrl     String    // Vercel Blob URL
   pathname    String    // Blob pathname for deletion
+
+  // Image metadata
   width       Int
   height      Int
   size        Int       // File size in bytes
   order       Int       @default(0)
   exifData    Json?     // EXIF metadata (camera, settings, etc.)
+
   uploadedAt  DateTime  @default(now())
 
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
