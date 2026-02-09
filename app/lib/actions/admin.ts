@@ -3,12 +3,8 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
-import fs from 'fs/promises'
-import path from 'path'
 
 type ActionState = { error: string | null }
-
-const TOWNS_ROOT = path.join(process.cwd(), '..', 'towns')
 
 // --- User Management ---
 
@@ -181,235 +177,24 @@ export async function adminDeleteProject(
 
 export async function connectGallery(
   _prevState: ActionState,
-  formData: FormData
+  _formData: FormData
 ): Promise<ActionState> {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
     return { error: 'Unauthorized' }
   }
-
-  const townName = formData.get('townName') as string
-  const year = parseInt(formData.get('year') as string)
-  const userId = formData.get('userId') as string
-
-  if (!townName || !year || !userId) {
-    return { error: 'Missing required fields.' }
-  }
-
-  // Find town in DB
-  const town = await prisma.town.findUnique({ where: { name: townName } })
-  if (!town) return { error: `Town "${townName}" not found in database.` }
-
-  // Verify user exists and is approved
-  const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) return { error: 'Selected user not found.' }
-  if (user.role === 'PENDING') return { error: 'User must be approved before assigning galleries.' }
-
-  // Check if already connected
-  const existing = await prisma.project.findFirst({
-    where: { townId: town.id, year },
-  })
-  if (existing) {
-    return { error: `A project for ${townName} (${year}) already exists.` }
-  }
-
-  // Read filesystem data
-  const yearDir = path.join(TOWNS_ROOT, townName, String(year))
-
-  let photographer = 'Unknown'
-  try {
-    const content = await fs.readFile(path.join(yearDir, 'photographer.txt'), 'utf-8')
-    photographer = content.replace(/^\uFEFF/, '').trim()
-  } catch {
-    // use default
-  }
-
-  let description: string | null = null
-  try {
-    const content = await fs.readFile(path.join(yearDir, 'description.txt'), 'utf-8')
-    description = content.replace(/^\uFEFF/, '').trim()
-  } catch {
-    // no description
-  }
-
-  let allFiles: string[]
-  try {
-    allFiles = await fs.readdir(yearDir)
-  } catch {
-    return { error: `Directory not found: ${townName}/${year}` }
-  }
-
-  const photoFiles = allFiles
-    .filter(f => /\.(jpg|jpeg)$/i.test(f))
-    .filter(f => !f.endsWith('~'))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-
-  if (photoFiles.length === 0) {
-    return { error: `No photos found in ${townName}/${year}.` }
-  }
-
-  // Create project
-  const project = await prisma.project.create({
-    data: {
-      townId: town.id,
-      year,
-      photographer,
-      userId,
-      published: true,
-      description,
-      photoCount: photoFiles.length,
-    },
-  })
-
-  // Create photo records
-  const photoData = await Promise.all(
-    photoFiles.map(async (filename, index) => {
-      const filePath = path.join(yearDir, filename)
-      let size = 0
-      try {
-        const stat = await fs.stat(filePath)
-        size = stat.size
-      } catch {
-        // default to 0
-      }
-      return {
-        projectId: project.id,
-        userId,
-        filename,
-        blobUrl: `/photos/${encodeURIComponent(townName)}/${year}/${encodeURIComponent(filename)}`,
-        pathname: filePath,
-        width: 1200,
-        height: 800,
-        size,
-        order: index,
-      }
-    })
-  )
-
-  await prisma.photo.createMany({ data: photoData })
-
-  revalidatePath('/admin/connect')
-  revalidatePath('/admin/projects')
-  revalidatePath('/admin')
-  return { error: null }
+  return { error: 'Filesystem connect is disabled. Use legacy import or normal uploads.' }
 }
 
 export async function bulkConnectGalleries(
   _prevState: ActionState,
-  formData: FormData
+  _formData: FormData
 ): Promise<ActionState> {
   const session = await auth()
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
     return { error: 'Unauthorized' }
   }
-
-  const userId = formData.get('userId') as string
-  const galleriesJson = formData.get('galleries') as string
-
-  if (!userId || !galleriesJson) {
-    return { error: 'Missing required fields.' }
-  }
-
-  let galleries: { townName: string; year: number }[]
-  try {
-    galleries = JSON.parse(galleriesJson)
-  } catch {
-    return { error: 'Invalid gallery data.' }
-  }
-
-  if (galleries.length === 0) {
-    return { error: 'No galleries selected.' }
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) return { error: 'Selected user not found.' }
-  if (user.role === 'PENDING') return { error: 'User must be approved before assigning galleries.' }
-
-  let connected = 0
-  let skipped = 0
-
-  for (const { townName, year } of galleries) {
-    const town = await prisma.town.findUnique({ where: { name: townName } })
-    if (!town) { skipped++; continue }
-
-    const existing = await prisma.project.findFirst({
-      where: { townId: town.id, year },
-    })
-    if (existing) { skipped++; continue }
-
-    const yearDir = path.join(TOWNS_ROOT, townName, String(year))
-
-    let photographer = 'Unknown'
-    try {
-      const content = await fs.readFile(path.join(yearDir, 'photographer.txt'), 'utf-8')
-      photographer = content.replace(/^\uFEFF/, '').trim()
-    } catch { /* use default */ }
-
-    let description: string | null = null
-    try {
-      const content = await fs.readFile(path.join(yearDir, 'description.txt'), 'utf-8')
-      description = content.replace(/^\uFEFF/, '').trim()
-    } catch { /* no description */ }
-
-    let allFiles: string[]
-    try {
-      allFiles = await fs.readdir(yearDir)
-    } catch { skipped++; continue }
-
-    const photoFiles = allFiles
-      .filter(f => /\.(jpg|jpeg)$/i.test(f))
-      .filter(f => !f.endsWith('~'))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-
-    if (photoFiles.length === 0) { skipped++; continue }
-
-    const project = await prisma.project.create({
-      data: {
-        townId: town.id,
-        year,
-        photographer,
-        userId,
-        published: true,
-        description,
-        photoCount: photoFiles.length,
-      },
-    })
-
-    const photoData = await Promise.all(
-      photoFiles.map(async (filename, index) => {
-        const filePath = path.join(yearDir, filename)
-        let size = 0
-        try {
-          const stat = await fs.stat(filePath)
-          size = stat.size
-        } catch { /* default to 0 */ }
-        return {
-          projectId: project.id,
-          userId,
-          filename,
-          blobUrl: `/photos/${encodeURIComponent(townName)}/${year}/${encodeURIComponent(filename)}`,
-          pathname: filePath,
-          width: 1200,
-          height: 800,
-          size,
-          order: index,
-        }
-      })
-    )
-
-    await prisma.photo.createMany({ data: photoData })
-    connected++
-  }
-
-  revalidatePath('/admin/connect')
-  revalidatePath('/admin/projects')
-  revalidatePath('/admin')
-
-  if (skipped > 0 && connected === 0) {
-    return { error: `All ${skipped} galleries were already connected or had errors.` }
-  }
-
-  return { error: null }
+  return { error: 'Filesystem bulk connect is disabled. Use legacy import or normal uploads.' }
 }
 
 export async function bulkDisconnectGalleries(

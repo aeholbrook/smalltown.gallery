@@ -2,15 +2,11 @@ import { prisma } from '@/lib/db'
 import { townsWithPhotos } from '@/lib/towns'
 import { ConnectGalleryCard } from '@/components/admin/ConnectGalleryCard'
 import { BulkConnectControls } from '@/components/admin/BulkConnectControls'
-import fs from 'fs/promises'
-import path from 'path'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Connect Galleries — Admin',
 }
-
-const TOWNS_ROOT = path.join(process.cwd(), '..', 'towns')
 
 export default async function ConnectGalleriesPage() {
   // Get all non-PENDING users for assignment dropdown
@@ -48,34 +44,19 @@ export default async function ConnectGalleriesPage() {
     ])
   )
 
-  // Build gallery data from filesystem
-  const galleries = await Promise.all(
-    townsWithPhotos.flatMap(town =>
-      (town.years || []).map(async ({ year, photographer }) => {
-        const yearDir = path.join(TOWNS_ROOT, town.name, String(year))
-        let photoCount = 0
-        try {
-          const files = await fs.readdir(yearDir)
-          photoCount = files.filter(f => /\.(jpg|jpeg)$/i.test(f) && !f.endsWith('~')).length
-        } catch {
-          // directory may not exist
-        }
-
-        const connectedInfo = connectedMap.get(`${town.name}-${year}`) || null
-        if (connectedInfo) {
-          photoCount = connectedInfo.photoCount || photoCount
-        }
-
-        return {
-          townName: town.name,
-          year,
-          photographer,
-          photoCount,
-          connectedUser: connectedInfo ? { id: connectedInfo.user.id, name: connectedInfo.user.name } : null,
-          claimable: connectedInfo?.claimable || false,
-        }
-      })
-    )
+  // Build gallery data from static town/year list + DB project info.
+  const galleries = townsWithPhotos.flatMap(town =>
+    (town.years || []).map(({ year, photographer }) => {
+      const connectedInfo = connectedMap.get(`${town.name}-${year}`) || null
+      return {
+        townName: town.name,
+        year,
+        photographer,
+        photoCount: connectedInfo?.photoCount || 0,
+        connectedUser: connectedInfo ? { id: connectedInfo.user.id, name: connectedInfo.user.name } : null,
+        claimable: connectedInfo?.claimable || false,
+      }
+    })
   )
 
   return (
