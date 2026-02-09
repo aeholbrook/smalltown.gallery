@@ -26,7 +26,6 @@ export default async function ConnectGalleriesPage() {
     where: { name: { in: townNames } },
     select: { id: true, name: true },
   })
-  const townNameToId = new Map(dbTowns.map(t => [t.name, t.id]))
   const townIds = dbTowns.map(t => t.id)
 
   const connectedProjects = await prisma.project.findMany({
