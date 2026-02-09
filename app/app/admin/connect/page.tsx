@@ -31,14 +31,21 @@ export default async function ConnectGalleriesPage() {
   const connectedProjects = await prisma.project.findMany({
     where: { townId: { in: townIds } },
     include: {
-      user: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true, role: true } },
       town: { select: { name: true } },
     },
   })
 
   // Index connected projects by "townName-year"
   const connectedMap = new Map(
-    connectedProjects.map(p => [`${p.town.name}-${p.year}`, p.user])
+    connectedProjects.map(p => [
+      `${p.town.name}-${p.year}`,
+      {
+        user: p.user,
+        photoCount: p.photoCount,
+        claimable: p.user.role === 'PENDING',
+      },
+    ])
   )
 
   // Build gallery data from filesystem
@@ -54,14 +61,18 @@ export default async function ConnectGalleriesPage() {
           // directory may not exist
         }
 
-        const connectedUser = connectedMap.get(`${town.name}-${year}`) || null
+        const connectedInfo = connectedMap.get(`${town.name}-${year}`) || null
+        if (connectedInfo) {
+          photoCount = connectedInfo.photoCount || photoCount
+        }
 
         return {
           townName: town.name,
           year,
           photographer,
           photoCount,
-          connectedUser,
+          connectedUser: connectedInfo ? { id: connectedInfo.user.id, name: connectedInfo.user.name } : null,
+          claimable: connectedInfo?.claimable || false,
         }
       })
     )
@@ -70,11 +81,11 @@ export default async function ConnectGalleriesPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-        Connect Filesystem Galleries
+        Connect and Claim Galleries
       </h1>
       <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-        Assign existing photo galleries from the filesystem to user accounts.
-        Connected galleries appear in the photographer&apos;s dashboard and on the public map.
+        Assign unconnected galleries and claim placeholder galleries to real users.
+        Claimed galleries appear in the photographer&apos;s dashboard.
       </p>
 
       {users.length > 0 && galleries.length > 0 && (
@@ -83,6 +94,7 @@ export default async function ConnectGalleriesPage() {
             townName: g.townName,
             year: g.year,
             connected: !!g.connectedUser,
+            claimable: g.claimable,
           }))}
           users={users}
         />

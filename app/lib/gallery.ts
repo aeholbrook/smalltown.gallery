@@ -1,10 +1,17 @@
-import fs from 'fs/promises'
-import path from 'path'
 import { townsWithPhotos } from './towns'
 import { prisma } from './db'
 import { slugify } from './utils'
 
-const TOWNS_ROOT = path.join(process.cwd(), '..', 'towns')
+const USE_FILESYSTEM_GALLERIES = process.env.VERCEL !== '1'
+
+async function getFsDeps() {
+  const [fs, path] = await Promise.all([import('fs/promises'), import('path')])
+  return { fs: fs.default, path: path.default }
+}
+
+function getTownsRoot(pathMod: { join: (...parts: string[]) => string }) {
+  return process.env.LOCAL_TOWNS_ROOT || pathMod.join(process.cwd(), '..', 'towns')
+}
 
 export interface GalleryPhoto {
   filename: string
@@ -25,6 +32,9 @@ export function getTownBySlug(slug: string) {
 }
 
 async function readTextFile(filePath: string): Promise<string | null> {
+  if (!USE_FILESYSTEM_GALLERIES) return null
+
+  const { fs } = await getFsDeps()
   try {
     const content = await fs.readFile(filePath, 'utf-8')
     return content.replace(/^\uFEFF/, '').trim()
@@ -34,9 +44,13 @@ async function readTextFile(filePath: string): Promise<string | null> {
 }
 
 async function getFilesystemGalleryData(townSlug: string, year: number): Promise<GalleryData | null> {
+  if (!USE_FILESYSTEM_GALLERIES) return null
+
+  const { fs, path } = await getFsDeps()
   const town = getTownBySlug(townSlug)
   if (!town) return null
 
+  const TOWNS_ROOT = getTownsRoot(path)
   const yearDir = path.join(TOWNS_ROOT, town.name, String(year))
 
   try {
@@ -105,8 +119,10 @@ async function getDbGalleryData(townSlug: string, year: number): Promise<Gallery
 
 export async function getGalleryData(townSlug: string, year: number): Promise<GalleryData | null> {
   // Try filesystem first (existing galleries)
-  const fsData = await getFilesystemGalleryData(townSlug, year)
-  if (fsData) return fsData
+  if (USE_FILESYSTEM_GALLERIES) {
+    const fsData = await getFilesystemGalleryData(townSlug, year)
+    if (fsData) return fsData
+  }
 
   // Fall back to database (new uploads)
   return getDbGalleryData(townSlug, year)
@@ -122,6 +138,10 @@ export interface GalleryPreview {
 
 /** Get a shuffled selection of photos from filesystem galleries for sidebar display */
 export async function getRandomGalleryPreviews(count: number = 20): Promise<GalleryPreview[]> {
+  if (!USE_FILESYSTEM_GALLERIES) return []
+
+  const { fs, path } = await getFsDeps()
+  const TOWNS_ROOT = getTownsRoot(path)
   const previews: GalleryPreview[] = []
 
   for (const town of townsWithPhotos) {
@@ -166,10 +186,12 @@ export async function getAllGalleryParams(): Promise<{ town: string; year: strin
   const params: { town: string; year: string }[] = []
 
   // Filesystem galleries
-  for (const town of townsWithPhotos) {
-    if (!town.years) continue
-    for (const { year } of town.years) {
-      params.push({ town: slugify(town.name), year: String(year) })
+  if (USE_FILESYSTEM_GALLERIES) {
+    for (const town of townsWithPhotos) {
+      if (!town.years) continue
+      for (const { year } of town.years) {
+        params.push({ town: slugify(town.name), year: String(year) })
+      }
     }
   }
 
