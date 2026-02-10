@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, FolderOpen } from 'lucide-react'
+import { LayoutDashboard, Users, FolderOpen, FolderPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/projects', label: 'Projects', icon: FolderOpen },
+  { href: '/admin/placeholders', label: 'Placeholders', icon: FolderPlus },
 ]
 
 export function AdminNav() {
