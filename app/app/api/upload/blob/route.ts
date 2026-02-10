@@ -23,14 +23,15 @@ export async function POST(request: NextRequest) {
         }
 
         const project = await prisma.project.findUnique({ where: { id: projectId } })
-        if (!project || project.userId !== session.user.id) {
+        const isAdmin = session.user.role === 'ADMIN'
+        if (!project || (!isAdmin && project.userId !== session.user.id)) {
           throw new Error('Project not found')
         }
 
         return {
           allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp'],
           addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ projectId, userId: session.user.id }),
+          tokenPayload: JSON.stringify({ projectId }),
         }
       },
       // We persist DB metadata from the client in /api/upload after upload finishes.

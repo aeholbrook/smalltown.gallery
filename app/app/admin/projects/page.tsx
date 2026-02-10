@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { AdminProjectActions } from '@/components/admin/AdminProjectActions'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -35,7 +36,11 @@ export default async function AdminProjectsPage() {
             <tbody>
               {projects.map(project => (
                 <tr key={project.id} className="border-b border-zinc-100 dark:border-zinc-800/50 last:border-0">
-                  <td className="px-4 py-3 text-zinc-900 dark:text-white font-medium">{project.town.name}</td>
+                  <td className="px-4 py-3 text-zinc-900 dark:text-white font-medium">
+                    <Link href={`/admin/projects/${project.id}`} className="hover:underline">
+                      {project.town.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{project.year}</td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{project.photographer}</td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{project.user.name}</td>
