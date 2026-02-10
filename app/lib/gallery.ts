@@ -4,6 +4,9 @@ import { slugify } from './utils'
 export interface GalleryPhoto {
   filename: string
   src: string
+  width: number
+  height: number
+  title: string | null
 }
 
 export interface GalleryData {
@@ -39,6 +42,9 @@ async function getDbGalleryData(townSlug: string, year: number): Promise<Gallery
       photos: project.photos.map(p => ({
         filename: p.filename,
         src: p.blobUrl,
+        width: p.width,
+        height: p.height,
+        title: p.title,
       })),
     }
   } catch {
@@ -81,6 +87,9 @@ export async function getRandomGalleryPreviews(count: number = 20): Promise<Gall
           photo: {
             filename: photo.filename,
             src: photo.blobUrl,
+            width: photo.width,
+            height: photo.height,
+            title: photo.title,
           },
         })
       }
