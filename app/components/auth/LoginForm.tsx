@@ -1,17 +1,50 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { loginUser } from '@/lib/actions/auth'
+import { signIn } from 'next-auth/react'
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState(loginUser, { error: null })
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+
+  async function onSubmit(formData: FormData) {
+    setError(null)
+    setPending(true)
+
+    const email = String(formData.get('email') || '')
+    const password = String(formData.get('password') || '')
+
+    if (!email || !password) {
+      setError('Email and password are required.')
+      setPending(false)
+      return
+    }
+
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+      callbackUrl: '/dashboard',
+    })
+
+    if (result?.error) {
+      setError('Invalid email or password.')
+      setPending(false)
+      return
+    }
+
+    window.location.href = '/dashboard'
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
-      {state?.error && (
+    <form
+      action={onSubmit}
+      className="space-y-4"
+    >
+      {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-400">
-          {state.error}
+          {error}
         </div>
       )}
 
