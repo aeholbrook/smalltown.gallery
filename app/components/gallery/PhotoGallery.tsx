@@ -12,16 +12,6 @@ interface PhotoGalleryProps {
 export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
   const galleryRef = useRef<HTMLDivElement>(null)
 
-  const syncNaturalSize = (anchor: HTMLAnchorElement) => {
-    const img = anchor.querySelector('img')
-    const width = img?.naturalWidth || 0
-    const height = img?.naturalHeight || 0
-    if (width > 0 && height > 0) {
-      anchor.dataset.pswpWidth = String(width)
-      anchor.dataset.pswpHeight = String(height)
-    }
-  }
-
   return (
     <div>
       <p className="mb-4 text-sm text-zinc-500">
@@ -30,33 +20,31 @@ export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
 
       <div
         ref={galleryRef}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+        className="columns-2 gap-2 sm:columns-3 md:columns-4 lg:columns-5"
       >
         {photos.map((photo, index) => (
           <a
             key={photo.filename}
             href={photo.src}
-            data-pswp-width={1600}
-            data-pswp-height={1200}
-            className="group relative aspect-[4/3] overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800"
+            data-pswp-width={photo.width || 1600}
+            data-pswp-height={photo.height || 1200}
+            className="group relative mb-2 block overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800"
             target="_blank"
             rel="noreferrer"
-            onClick={(e) => {
-              syncNaturalSize(e.currentTarget)
-            }}
           >
             <img
               src={photo.src}
-              alt={`${townName} photograph ${index + 1}`}
+              alt={photo.title || `${townName} photograph ${index + 1}`}
+              width={photo.width || undefined}
+              height={photo.height || undefined}
               loading={index < 10 ? 'eager' : 'lazy'}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              onLoad={(e) => {
-                const anchor = e.currentTarget.closest('a')
-                if (anchor instanceof HTMLAnchorElement) {
-                  syncNaturalSize(anchor)
-                }
-              }}
+              className="w-full h-auto block transition-transform duration-300 group-hover:scale-105"
             />
+            {photo.title && (
+              <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                {photo.title}
+              </span>
+            )}
           </a>
         ))}
       </div>
