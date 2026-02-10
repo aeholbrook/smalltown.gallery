@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg'])
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.webp'])
 const LEGACY_PHOTOS_BASE_URL = process.env.LEGACY_PHOTOS_BASE_URL
 
 export async function GET(
