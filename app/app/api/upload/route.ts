@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
   }
 
   const project = await prisma.project.findUnique({ where: { id: projectId } })
-  if (!project || project.userId !== session.user.id) {
+  const isAdmin = session.user.role === 'ADMIN'
+  if (!project || (!isAdmin && project.userId !== session.user.id)) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const record = await prisma.photo.create({
       data: {
         projectId,
-        userId: session.user.id,
+        userId: project.userId,
         filename: photo.filename,
         blobUrl: photo.blobUrl,
         pathname: photo.pathname,

@@ -18,9 +18,10 @@ export async function updatePhotoCaption(
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { userId: true, projectId: true },
+    include: { project: true },
   })
-  if (!photo || photo.userId !== session.user.id) {
+  const isAdmin = session.user.role === 'ADMIN'
+  if (!photo || (!isAdmin && photo.userId !== session.user.id)) {
     return { error: 'Photo not found.' }
   }
 
@@ -30,6 +31,7 @@ export async function updatePhotoCaption(
   })
 
   revalidatePath(`/dashboard/projects/${photo.projectId}`)
+  revalidatePath(`/admin/projects/${photo.projectId}`)
   return { error: null }
 }
 
@@ -43,7 +45,8 @@ export async function reorderPhotos(
   const project = await prisma.project.findUnique({
     where: { id: projectId },
   })
-  if (!project || project.userId !== session.user.id) {
+  const isAdmin = session.user.role === 'ADMIN'
+  if (!project || (!isAdmin && project.userId !== session.user.id)) {
     return { error: 'Project not found.' }
   }
 
@@ -63,6 +66,7 @@ export async function reorderPhotos(
   )
 
   revalidatePath(`/dashboard/projects/${projectId}`)
+  revalidatePath(`/admin/projects/${projectId}`)
   return { error: null }
 }
 
@@ -77,9 +81,10 @@ export async function deletePhoto(
 
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
-    select: { userId: true, projectId: true, blobUrl: true },
+    include: { project: true },
   })
-  if (!photo || photo.userId !== session.user.id) {
+  const isAdmin = session.user.role === 'ADMIN'
+  if (!photo || (!isAdmin && photo.userId !== session.user.id)) {
     return { error: 'Photo not found.' }
   }
 
@@ -105,5 +110,7 @@ export async function deletePhoto(
   })
 
   revalidatePath(`/dashboard/projects/${photo.projectId}`)
+  revalidatePath(`/admin/projects/${photo.projectId}`)
+  revalidatePath('/admin/projects')
   return { error: null }
 }
