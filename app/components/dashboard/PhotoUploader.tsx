@@ -35,7 +35,7 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const valid = Array.from(newFiles).filter(
       (f) =>
-        (f.type === 'image/jpeg' || f.type === 'image/png') &&
+        (f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/webp') &&
         f.size <= 20 * 1024 * 1024
     )
     setFiles((prev) => [...prev, ...valid])
@@ -129,12 +129,12 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
           Drag and drop photos here, or click to browse
         </p>
         <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-          JPEG or PNG, max 20MB each
+          JPEG, PNG, or WebP, max 20MB each
         </p>
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png"
+          accept="image/jpeg,image/png,image/webp"
           multiple
           className="hidden"
           onChange={(e) => {

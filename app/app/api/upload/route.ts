@@ -56,7 +56,11 @@ export async function POST(request: NextRequest) {
   const uploaded = []
 
   for (const file of files) {
-    if (!file.type.startsWith('image/jpeg') && !file.type.startsWith('image/png')) {
+    if (
+      !file.type.startsWith('image/jpeg') &&
+      !file.type.startsWith('image/png') &&
+      !file.type.startsWith('image/webp')
+    ) {
       continue
     }
     if (file.size > 20 * 1024 * 1024) continue
