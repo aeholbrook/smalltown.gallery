@@ -69,6 +69,7 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
         setProgress(`Uploading ${file.name}...`)
         const blob = await upload(`projects/${projectId}/${file.name}`, file, {
           access: 'public',
+          contentType: file.type || undefined,
           handleUploadUrl: '/api/upload/blob',
           clientPayload: JSON.stringify({ projectId }),
         })
@@ -103,8 +104,10 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
         setProgress('')
         router.refresh()
       }
-    } catch {
-      setError('Upload failed. Please try again.')
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Upload failed. Please try again.'
+      setError(message)
     } finally {
       setUploading(false)
       setProgress('')

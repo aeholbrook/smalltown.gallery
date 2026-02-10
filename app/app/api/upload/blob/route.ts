@@ -4,10 +4,25 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN
+  if (!token) {
+    return NextResponse.json(
+      { error: 'BLOB_READ_WRITE_TOKEN is not configured for this environment.' },
+      { status: 500 }
+    )
+  }
+  if (!token.startsWith('vercel_blob_rw_')) {
+    return NextResponse.json(
+      { error: 'BLOB_READ_WRITE_TOKEN is not a read-write token.' },
+      { status: 500 }
+    )
+  }
+
   const body = (await request.json()) as HandleUploadBody
 
   try {
     const response = await handleUpload({
+      token,
       body,
       request,
       onBeforeGenerateToken: async (_pathname, clientPayload) => {
