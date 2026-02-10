@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, X, Loader2 } from 'lucide-react'
+import { upload } from '@vercel/blob/client'
 import { formatBytes } from '@/lib/utils'
 
 function getImageDimensions(
@@ -52,27 +53,46 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('projectId', projectId)
+      const uploaded: Array<{
+        filename: string
+        blobUrl: string
+        pathname: string
+        size: number
+        width: number
+        height: number
+      }> = []
 
       for (const file of files) {
         setProgress(`Reading ${file.name}...`)
         const dims = await getImageDimensions(file)
-        formData.append('files', file)
-        formData.append(
-          'dimensions',
-          JSON.stringify({
-            name: file.name,
-            width: dims.width,
-            height: dims.height,
-          })
-        )
+
+        setProgress(`Uploading ${file.name}...`)
+        const blob = await upload(`projects/${projectId}/${file.name}`, file, {
+          access: 'public',
+          handleUploadUrl: '/api/upload/blob',
+          clientPayload: JSON.stringify({ projectId }),
+        })
+
+        uploaded.push({
+          filename: file.name,
+          blobUrl: blob.url,
+          pathname: blob.pathname,
+          size: file.size,
+          width: dims.width,
+          height: dims.height,
+        })
       }
 
-      setProgress(`Uploading ${files.length} photo${files.length > 1 ? 's' : ''}...`)
+      setProgress(`Saving ${uploaded.length} photo${uploaded.length > 1 ? 's' : ''}...`)
       const res = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId,
+          photos: uploaded,
+        }),
       })
 
       const data = await res.json()
