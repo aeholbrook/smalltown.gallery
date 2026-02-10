@@ -17,24 +17,21 @@ export interface GalleryData {
 
 async function getDbGalleryData(townSlug: string, year: number): Promise<GalleryData | null> {
   try {
-    const town = await prisma.town.findFirst({
-      where: {
-        name: {
-          equals: townSlug.replace(/-/g, ' '),
-          mode: 'insensitive',
-        },
+    // Resolve by slug against published projects for the year, not by plain
+    // slug-to-name replacement. This avoids 404s for towns with punctuation.
+    const projects = await prisma.project.findMany({
+      where: { year, published: true },
+      include: {
+        town: true,
+        photos: { orderBy: { order: 'asc' } },
       },
     })
-    if (!town) return null
 
-    const project = await prisma.project.findFirst({
-      where: { townId: town.id, year, published: true },
-      include: { photos: { orderBy: { order: 'asc' } } },
-    })
+    const project = projects.find(p => slugify(p.town.name) === townSlug)
     if (!project || project.photos.length === 0) return null
 
     return {
-      townName: town.name,
+      townName: project.town.name,
       townSlug,
       year,
       photographer: project.photographer,
