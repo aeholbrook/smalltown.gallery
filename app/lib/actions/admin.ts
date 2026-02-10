@@ -3,8 +3,27 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
+import { hash } from 'bcryptjs'
+import { randomUUID } from 'crypto'
 
 type ActionState = { error: string | null }
+const PLACEHOLDER_EMAIL = process.env.LEGACY_PLACEHOLDER_EMAIL || 'unclaimed@smalltown.gallery'
+const PLACEHOLDER_NAME = process.env.LEGACY_PLACEHOLDER_NAME || 'Unclaimed Legacy Collection'
+
+async function getOrCreatePlaceholderUser() {
+  const existing = await prisma.user.findUnique({ where: { email: PLACEHOLDER_EMAIL } })
+  if (existing) return existing
+
+  const passwordHash = await hash(randomUUID(), 10)
+  return prisma.user.create({
+    data: {
+      email: PLACEHOLDER_EMAIL,
+      name: PLACEHOLDER_NAME,
+      passwordHash,
+      role: 'PENDING',
+    },
+  })
+}
 
 // --- User Management ---
 
@@ -170,6 +189,101 @@ export async function adminDeleteProject(
 
   revalidatePath('/admin/projects')
   revalidatePath('/admin')
+  return { error: null }
+}
+
+export async function createPlaceholderProject(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const session = await auth()
+  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    return { error: 'Unauthorized' }
+  }
+
+  const townId = formData.get('townId') as string
+  const year = Number(formData.get('year'))
+  const photographer = (formData.get('photographer') as string)?.trim()
+
+  if (!townId || !Number.isFinite(year) || year < 1900 || year > 2100) {
+    return { error: 'Please select a town and provide a valid year.' }
+  }
+
+  const town = await prisma.town.findUnique({ where: { id: townId } })
+  if (!town) return { error: 'Town not found.' }
+
+  const existing = await prisma.project.findFirst({
+    where: { townId, year },
+  })
+  if (existing) {
+    return { error: `A project for ${town.name} (${year}) already exists.` }
+  }
+
+  const placeholderUser = await getOrCreatePlaceholderUser()
+
+  await prisma.project.create({
+    data: {
+      townId,
+      year,
+      photographer: photographer || 'Unassigned',
+      userId: placeholderUser.id,
+      published: false,
+      photoCount: 0,
+    },
+  })
+
+  revalidatePath('/admin/placeholders')
+  revalidatePath('/admin/projects')
+  revalidatePath('/admin')
+  return { error: null }
+}
+
+export async function claimPlaceholderProject(
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const session = await auth()
+  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+    return { error: 'Unauthorized' }
+  }
+
+  const projectId = formData.get('projectId') as string
+  const userId = formData.get('userId') as string
+  const publishOnClaim = formData.get('publishOnClaim') === '1'
+
+  if (!projectId || !userId) return { error: 'Missing required fields.' }
+
+  const targetUser = await prisma.user.findUnique({ where: { id: userId } })
+  if (!targetUser) return { error: 'Selected user not found.' }
+  if (targetUser.role === 'PENDING') return { error: 'User must be approved before claiming.' }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { user: true },
+  })
+  if (!project) return { error: 'Project not found.' }
+  if (project.user.email !== PLACEHOLDER_EMAIL && project.user.role !== 'PENDING') {
+    return { error: 'This project is not a placeholder.' }
+  }
+
+  await prisma.$transaction([
+    prisma.project.update({
+      where: { id: project.id },
+      data: {
+        userId: targetUser.id,
+        ...(publishOnClaim ? { published: true } : {}),
+      },
+    }),
+    prisma.photo.updateMany({
+      where: { projectId: project.id },
+      data: { userId: targetUser.id },
+    }),
+  ])
+
+  revalidatePath('/admin/placeholders')
+  revalidatePath('/admin/projects')
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
   return { error: null }
 }
 
