@@ -6,10 +6,12 @@ import RollingGallery from '@/components/map/RollingGallery'
 import { prisma } from '@/lib/db'
 import { slugify } from '@/lib/utils'
 import { getRandomGalleryPreviews } from '@/lib/gallery'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
+  noStore()
   // Fetch published DB projects to merge into map data
   let dbProjects: { townName: string; slug: string; year: number; photographer: string }[] = []
   try {
