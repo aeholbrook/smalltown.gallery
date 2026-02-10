@@ -32,11 +32,11 @@ export default async function Home() {
   const rightPreviews = await getRandomGalleryPreviews(12)
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-zinc-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
       <Header />
       <main className="relative flex flex-1 min-h-0">
         {/* Left rolling gallery — hidden on small screens */}
-        <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-r border-zinc-800 bg-zinc-950">
+        <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 transition-colors">
           <RollingGallery previews={leftPreviews} direction="up" />
         </div>
 
@@ -46,7 +46,7 @@ export default async function Home() {
         </div>
 
         {/* Right rolling gallery — hidden on small screens */}
-        <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-l border-zinc-800 bg-zinc-950">
+        <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-l border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 transition-colors">
           <RollingGallery previews={rightPreviews} direction="down" />
         </div>
       </main>
@@ -57,7 +57,7 @@ export default async function Home() {
 
 function BottomBar() {
   return (
-    <div className="flex items-center justify-center gap-8 bg-zinc-900 border-t border-zinc-800 px-4 py-2">
+    <div className="flex items-center justify-center gap-8 bg-zinc-200 dark:bg-zinc-900 border-t border-zinc-300 dark:border-zinc-800 px-4 py-2 transition-colors">
       <AboutPanel />
       <TownList />
     </div>

@@ -15,12 +15,100 @@ interface InteractiveMapProps {
   onTownSelect?: (town: TownLocation) => void
   onMapReady?: (actions: MapActions) => void
   dbProjects?: DbProject[]
+  theme?: 'dark' | 'light'
 }
 
-export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = [] }: InteractiveMapProps) {
+function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark: boolean) {
+  mapInstance.addSource('towns', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: towns.map(town => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [town.lng, town.lat],
+        },
+        properties: {
+          name: town.name,
+          hasPhotos: town.hasPhotos,
+          slug: slugify(town.name),
+          years: JSON.stringify(town.years || []),
+        },
+      })),
+    },
+  })
+
+  mapInstance.addLayer({
+    id: 'towns-no-photos',
+    type: 'circle',
+    source: 'towns',
+    filter: ['==', ['get', 'hasPhotos'], false],
+    paint: {
+      'circle-radius': [
+        'interpolate', ['linear'], ['zoom'],
+        6, 3,
+        10, 5,
+        14, 8,
+      ],
+      'circle-color': isDark ? '#6b7280' : '#9ca3af',
+      'circle-opacity': isDark ? 0.5 : 0.6,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': isDark ? '#9ca3af' : '#6b7280',
+      'circle-stroke-opacity': 0.3,
+    },
+  })
+
+  mapInstance.addLayer({
+    id: 'towns-with-photos',
+    type: 'circle',
+    source: 'towns',
+    filter: ['==', ['get', 'hasPhotos'], true],
+    paint: {
+      'circle-radius': [
+        'interpolate', ['linear'], ['zoom'],
+        6, 4,
+        10, 7,
+        14, 10,
+      ],
+      'circle-color': '#f59e0b',
+      'circle-opacity': 0.9,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#fbbf24',
+      'circle-stroke-opacity': 0.6,
+    },
+  })
+
+  mapInstance.addLayer({
+    id: 'town-labels',
+    type: 'symbol',
+    source: 'towns',
+    minzoom: 9,
+    layout: {
+      'text-field': ['get', 'name'],
+      'text-size': 12,
+      'text-offset': [0, 1.5],
+      'text-anchor': 'top',
+      'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+    },
+    paint: {
+      'text-color': [
+        'case',
+        ['get', 'hasPhotos'],
+        isDark ? '#fbbf24' : '#b45309',
+        isDark ? '#9ca3af' : '#4b5563',
+      ],
+      'text-halo-color': isDark ? '#1a1a2e' : '#ffffff',
+      'text-halo-width': 1,
+    },
+  })
+}
+
+export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = [], theme = 'dark' }: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const popupRef = useRef<mapboxgl.Popup | null>(null)
+  const prevThemeRef = useRef(theme)
   const [mapLoaded, setMapLoaded] = useState(false)
 
   // Merge DB projects into static town data
@@ -68,9 +156,10 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
 
     mapboxgl.accessToken = token
 
+    const isDark = theme === 'dark'
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: `mapbox://styles/mapbox/${isDark ? 'dark' : 'light'}-v11`,
       center: [MAP_CENTER.lng, MAP_CENTER.lat],
       zoom: MAP_ZOOM,
       minZoom: 6,
@@ -100,93 +189,7 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
         },
       })
 
-      // Add town markers as a GeoJSON source
-      mapInstance.addSource('towns', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: mergedTowns.map(town => ({
-            type: 'Feature' as const,
-            geometry: {
-              type: 'Point' as const,
-              coordinates: [town.lng, town.lat],
-            },
-            properties: {
-              name: town.name,
-              hasPhotos: town.hasPhotos,
-              slug: slugify(town.name),
-              years: JSON.stringify(town.years || []),
-            },
-          })),
-        },
-      })
-
-      // Layer for towns without photos (subtle dots)
-      mapInstance.addLayer({
-        id: 'towns-no-photos',
-        type: 'circle',
-        source: 'towns',
-        filter: ['==', ['get', 'hasPhotos'], false],
-        paint: {
-          'circle-radius': [
-            'interpolate', ['linear'], ['zoom'],
-            6, 3,
-            10, 5,
-            14, 8,
-          ],
-          'circle-color': '#6b7280',
-          'circle-opacity': 0.5,
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#9ca3af',
-          'circle-stroke-opacity': 0.3,
-        },
-      })
-
-      // Layer for towns with photos (highlighted dots)
-      mapInstance.addLayer({
-        id: 'towns-with-photos',
-        type: 'circle',
-        source: 'towns',
-        filter: ['==', ['get', 'hasPhotos'], true],
-        paint: {
-          'circle-radius': [
-            'interpolate', ['linear'], ['zoom'],
-            6, 4,
-            10, 7,
-            14, 10,
-          ],
-          'circle-color': '#f59e0b',
-          'circle-opacity': 0.9,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fbbf24',
-          'circle-stroke-opacity': 0.6,
-        },
-      })
-
-      // Town name labels
-      mapInstance.addLayer({
-        id: 'town-labels',
-        type: 'symbol',
-        source: 'towns',
-        minzoom: 9,
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-size': 12,
-          'text-offset': [0, 1.5],
-          'text-anchor': 'top',
-          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
-        },
-        paint: {
-          'text-color': [
-            'case',
-            ['get', 'hasPhotos'],
-            '#fbbf24',
-            '#9ca3af',
-          ],
-          'text-halo-color': '#1a1a2e',
-          'text-halo-width': 1,
-        },
-      })
+      addTownLayers(mapInstance, mergedTowns, isDark)
 
       // Hover state for interactive towns
       mapInstance.on('mouseenter', 'towns-with-photos', () => {
@@ -274,13 +277,29 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
       map.current?.remove()
       map.current = null
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleMarkerClick, mergedTowns])
+
+  // Swap map style when theme changes
+  useEffect(() => {
+    const m = map.current
+    if (!m || !mapLoaded) return
+    if (theme === prevThemeRef.current) return
+    prevThemeRef.current = theme
+
+    const isDark = theme === 'dark'
+    m.setStyle(`mapbox://styles/mapbox/${isDark ? 'dark' : 'light'}-v11`)
+    m.once('style.load', () => {
+      addTownLayers(m, mergedTowns, isDark)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
 
   return (
     <div className="relative h-full w-full">
       <div ref={mapContainer} className="h-full w-full" />
       {!mapLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 transition-colors">
           <div className="text-zinc-500 text-sm">Loading map...</div>
         </div>
       )}

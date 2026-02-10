@@ -28,6 +28,7 @@ export function PhotographerInfo({ descriptionHtml }: PhotographerInfoProps) {
       {expanded && (
         <div
           className="mt-4 max-w-none text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 [&_p]:mb-4 [&_p]:leading-relaxed [&_em]:text-zinc-500 dark:[&_em]:text-zinc-400"
+          style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}
           dangerouslySetInnerHTML={{ __html: descriptionHtml }}
         />
       )}

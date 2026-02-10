@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import MapSearch from './MapSearch'
+import { useTheme } from '@/components/ui/ThemeProvider'
 import type { MapActions } from './InteractiveMap'
 import type { TownLocation } from '@/lib/towns'
 
@@ -26,6 +27,7 @@ export interface DbProject {
 }
 
 export default function MapLoader({ dbProjects = [] }: { dbProjects?: DbProject[] }) {
+  const { theme } = useTheme()
   const [mapActions, setMapActions] = useState<MapActions | null>(null)
 
   const handleMapReady = useCallback((actions: MapActions) => {
@@ -38,7 +40,7 @@ export default function MapLoader({ dbProjects = [] }: { dbProjects?: DbProject[
 
   return (
     <div className="relative h-full w-full">
-      <InteractiveMap dbProjects={dbProjects} onMapReady={handleMapReady} />
+      <InteractiveMap dbProjects={dbProjects} onMapReady={handleMapReady} theme={theme} />
       <MapSearch onTownFocus={handleTownFocus} />
     </div>
   )

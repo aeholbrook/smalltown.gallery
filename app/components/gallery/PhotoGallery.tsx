@@ -12,6 +12,16 @@ interface PhotoGalleryProps {
 export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
   const galleryRef = useRef<HTMLDivElement>(null)
 
+  const syncNaturalSize = (anchor: HTMLAnchorElement) => {
+    const img = anchor.querySelector('img')
+    const width = img?.naturalWidth || 0
+    const height = img?.naturalHeight || 0
+    if (width > 0 && height > 0) {
+      anchor.dataset.pswpWidth = String(width)
+      anchor.dataset.pswpHeight = String(height)
+    }
+  }
+
   return (
     <div>
       <p className="mb-4 text-sm text-zinc-500">
@@ -31,12 +41,21 @@ export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
             className="group relative aspect-[4/3] overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800"
             target="_blank"
             rel="noreferrer"
+            onClick={(e) => {
+              syncNaturalSize(e.currentTarget)
+            }}
           >
             <img
               src={photo.src}
               alt={`${townName} photograph ${index + 1}`}
               loading={index < 10 ? 'eager' : 'lazy'}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onLoad={(e) => {
+                const anchor = e.currentTarget.closest('a')
+                if (anchor instanceof HTMLAnchorElement) {
+                  syncNaturalSize(anchor)
+                }
+              }}
             />
           </a>
         ))}

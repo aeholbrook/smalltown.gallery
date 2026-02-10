@@ -1,11 +1,22 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Permanent_Marker, EB_Garamond } from "next/font/google"
 import { ThemeProvider } from "@/components/ui/ThemeProvider"
 import SessionProvider from "@/components/ui/SessionProvider"
 import "./globals.css"
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+})
+
+const permanentMarker = Permanent_Marker({
+  variable: "--font-marker",
+  weight: "400",
+  subsets: ["latin"],
+})
+
+const ebGaramond = EB_Garamond({
+  variable: "--font-garamond",
   subsets: ["latin"],
 })
 
@@ -24,6 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <link rel="preload" href="https://api.mapbox.com/mapbox-gl-js/v3.18.1/mapbox-gl.css" as="style" />
+        <link rel="preconnect" href="https://api.mapbox.com" />
+        <link rel="preconnect" href="https://tiles.mapbox.com" />
+        <link rel="preconnect" href="https://events.mapbox.com" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -38,7 +53,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${permanentMarker.variable} ${ebGaramond.variable} font-sans antialiased`}>
         <SessionProvider>
           <ThemeProvider>
             {children}

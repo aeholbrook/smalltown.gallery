@@ -79,11 +79,11 @@ export default function RollingGallery({ previews, direction = 'up' }: RollingGa
                   loading="lazy"
                 />
               </div>
-              <div className="mt-1.5 px-0.5">
-                <h4 className="text-xs font-semibold text-zinc-200 group-hover:text-amber-400 transition-colors">
+              <div className="mt-1.5 px-0.5" style={{ fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif' }}>
+                <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
                   {preview.townName}
                 </h4>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-500">
                   {preview.year} — {preview.photographer}
                 </p>
               </div>

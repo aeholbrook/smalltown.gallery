@@ -31,7 +31,7 @@ export default function AboutPanel() {
             <h2 className="text-xl font-semibold text-white mb-4">
               About Small Town Documentary
             </h2>
-            <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
+            <div className="space-y-4 text-sm leading-relaxed text-zinc-300" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
               <p>
                 Professor Dan Overturf started the Small Town Documentary class
                 in August 1996, in the Department of Cinema and Photography at

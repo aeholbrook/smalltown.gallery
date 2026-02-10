@@ -1,1 +1,8 @@
 .claude/
+
+# Flickr import — keep scripts, exclude downloaded photos and metadata
+flickr-import/**/
+!flickr-import/*.py
+!flickr-import/*.mjs
+!flickr-import/*.sh
+!flickr-import/manifest.json
