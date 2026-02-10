@@ -12,11 +12,11 @@ export default function AboutPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors">
       <Header />
       <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-8">
+        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-8" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
           About Small Town Documentary
         </h1>
 
-        <div className="space-y-5 text-base leading-relaxed text-zinc-700 dark:text-zinc-300">
+        <div className="space-y-5 text-base leading-relaxed text-zinc-700 dark:text-zinc-300" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
           <p>
             Professor Dan Overturf started the Small Town Documentary class
             in August 1996, in the Department of Cinema and Photography at

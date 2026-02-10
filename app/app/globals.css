@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
 /* Enable class-based dark mode (Tailwind v4) */
@@ -27,6 +28,53 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 
+/* Header title: handwritten film-note look */
+.film-title {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-marker), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.85;
+  -webkit-text-stroke: 0px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 0.5px rgba(0, 0, 0, 0.3);
+}
+
+.film-title::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.12;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(0, 0, 0, 0.18) 0, transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(0, 0, 0, 0.12) 0, transparent 38%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
+.dark .film-title::after {
+  mix-blend-mode: screen;
+  opacity: 0.08;
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.2) 0, transparent 40%),
+    radial-gradient(circle at 75% 65%, rgba(255, 255, 255, 0.14) 0, transparent 38%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.06) 0px,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
 /* Slide-up animation for modals */
 @keyframes slide-up {
   from {
@@ -43,21 +91,21 @@ body {
   animation: slide-up 0.25s ease-out;
 }
 
-/* Mapbox popup overrides — always dark since the map is always dark */
+/* Mapbox popup overrides — light mode */
 .map-popup-container .mapboxgl-popup-content {
-  background: #18181b;
-  border: 1px solid #3f3f46;
+  background: #ffffff;
+  border: 1px solid #d4d4d8;
   border-radius: 8px;
   padding: 0;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .map-popup-container .mapboxgl-popup-tip {
-  border-top-color: #18181b;
+  border-top-color: #ffffff;
 }
 
 .map-popup-container .mapboxgl-popup-close-button {
-  color: #a1a1aa;
+  color: #71717a;
   font-size: 18px;
   padding: 4px 8px;
   right: 2px;
@@ -65,7 +113,7 @@ body {
 }
 
 .map-popup-container .mapboxgl-popup-close-button:hover {
-  color: #ffffff;
+  color: #18181b;
   background: transparent;
 }
 
@@ -76,7 +124,7 @@ body {
 .map-popup-title {
   font-size: 14px;
   font-weight: 600;
-  color: #fafafa;
+  color: #18181b;
   margin: 0 0 6px;
 }
 
@@ -89,7 +137,7 @@ body {
 .map-popup-link {
   display: block;
   font-size: 13px;
-  color: #a1a1aa;
+  color: #52525b;
   text-decoration: none;
   padding: 4px 8px;
   margin: 0 -8px;
@@ -98,8 +146,8 @@ body {
 }
 
 .map-popup-link:hover {
-  background: #27272a;
-  color: #fbbf24;
+  background: #f4f4f5;
+  color: #b45309;
 }
 
 .map-popup-link em {
@@ -108,7 +156,7 @@ body {
 }
 
 .map-popup-link:hover em {
-  color: #a1a1aa;
+  color: #52525b;
 }
 
 .map-popup-empty {
@@ -117,22 +165,66 @@ body {
   margin: 0;
 }
 
-/* Mapbox navigation control overrides */
-.mapboxgl-ctrl-group {
+/* Mapbox popup overrides — dark mode */
+.dark .map-popup-container .mapboxgl-popup-content {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.dark .map-popup-container .mapboxgl-popup-tip {
+  border-top-color: #18181b;
+}
+
+.dark .map-popup-container .mapboxgl-popup-close-button {
+  color: #a1a1aa;
+}
+
+.dark .map-popup-container .mapboxgl-popup-close-button:hover {
+  color: #ffffff;
+}
+
+.dark .map-popup-title {
+  color: #fafafa;
+}
+
+.dark .map-popup-link {
+  color: #a1a1aa;
+}
+
+.dark .map-popup-link:hover {
+  background: #27272a;
+  color: #fbbf24;
+}
+
+.dark .map-popup-link em {
+  color: #71717a;
+}
+
+.dark .map-popup-link:hover em {
+  color: #a1a1aa;
+}
+
+.dark .map-popup-empty {
+  color: #71717a;
+}
+
+/* Mapbox navigation control overrides (dark mode only) */
+.dark .mapboxgl-ctrl-group {
   background: #18181b !important;
   border: 1px solid #3f3f46 !important;
   border-radius: 6px !important;
 }
 
-.mapboxgl-ctrl-group button {
+.dark .mapboxgl-ctrl-group button {
   border-color: #3f3f46 !important;
 }
 
-.mapboxgl-ctrl-group button + button {
+.dark .mapboxgl-ctrl-group button + button {
   border-top: 1px solid #3f3f46 !important;
 }
 
-.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+.dark .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
   filter: invert(1);
 }
 

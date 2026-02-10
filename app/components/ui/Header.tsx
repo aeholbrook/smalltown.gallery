@@ -11,12 +11,20 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 transition-colors">
-      <div className="flex items-center justify-between">
+    <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 py-2 sm:h-16 sm:py-0 transition-colors">
+      <div className="flex min-h-12 sm:h-full items-center justify-between">
         <Link href="/" className="group">
-          <h1 className="text-2xl font-bold tracking-wide text-zinc-900 dark:text-white sm:text-3xl">
-            Small Town Documentary
-          </h1>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <img
+              src="https://1000logos.net/wp-content/uploads/2020/01/Southern-Illinois-Salukis-Logo-1964.png"
+              alt="Southern Illinois Salukis logo"
+              className="h-12 w-12 object-contain grayscale sm:h-24 sm:w-24"
+            />
+            <h1 className="film-title max-w-[58vw] truncate text-lg tracking-wide text-zinc-900 dark:text-white sm:max-w-none sm:text-3xl">
+              <span className="sm:hidden">Small Town Doc</span>
+              <span className="hidden sm:inline">The Small Town Documentary Project</span>
+            </h1>
+          </div>
         </Link>
 
         {/* Desktop nav */}
