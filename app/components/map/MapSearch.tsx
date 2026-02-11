@@ -1,32 +1,94 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { allTowns, type TownLocation } from '@/lib/towns'
-import { slugify } from '@/lib/utils'
 
 interface MapSearchProps {
   onTownFocus?: (town: TownLocation) => void
+  dbProjects?: { townName: string; year: number; photographer: string }[]
 }
 
-export default function MapSearch({ onTownFocus }: MapSearchProps) {
+type SearchResult =
+  | { key: string; type: 'town'; town: TownLocation }
+  | { key: string; type: 'photographer'; town: TownLocation; year: number; photographer: string }
+
+export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchProps) {
   const [query, setQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [filter, setFilter] = useState<'all' | 'photos' | 'no-photos'>('all')
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const filtered = allTowns
-    .filter(t => {
-      if (filter === 'photos') return t.hasPhotos
-      if (filter === 'no-photos') return !t.hasPhotos
-      return true
+  const mergedTowns = useMemo(() => {
+    if (dbProjects.length === 0) return allTowns
+
+    const dbByTown = new Map<string, { year: number; photographer: string }[]>()
+    for (const p of dbProjects) {
+      const existing = dbByTown.get(p.townName) || []
+      existing.push({ year: p.year, photographer: p.photographer })
+      dbByTown.set(p.townName, existing)
+    }
+
+    return allTowns.map(town => {
+      const dbYears = dbByTown.get(town.name)
+      if (!dbYears) return town
+
+      const existingYears = town.years || []
+      const existingYearKeys = new Set(existingYears.map(y => `${y.year}-${y.photographer}`))
+      const newYears = dbYears.filter(y => !existingYearKeys.has(`${y.year}-${y.photographer}`))
+
+      return {
+        ...town,
+        hasPhotos: true,
+        years: [...existingYears, ...newYears],
+      }
     })
-    .filter(t => t.name.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      // Towns with photos first, then alphabetical
-      if (a.hasPhotos !== b.hasPhotos) return a.hasPhotos ? -1 : 1
-      return a.name.localeCompare(b.name)
+  }, [dbProjects])
+
+  const visibleTowns = mergedTowns.filter(t => {
+    if (filter === 'photos') return t.hasPhotos
+    if (filter === 'no-photos') return !t.hasPhotos
+    return true
+  })
+
+  const q = query.trim().toLowerCase()
+  const results = useMemo<SearchResult[]>(() => {
+    const townResults = visibleTowns
+      .filter(t => t.name.toLowerCase().includes(q))
+      .map(t => ({ key: `town:${t.name}`, type: 'town' as const, town: t }))
+
+    if (!q || filter === 'no-photos') {
+      return townResults.sort((a, b) => {
+        if (a.town.hasPhotos !== b.town.hasPhotos) return a.town.hasPhotos ? -1 : 1
+        return a.town.name.localeCompare(b.town.name)
+      })
+    }
+
+    const photographerResults: SearchResult[] = []
+    for (const town of visibleTowns) {
+      for (const y of town.years || []) {
+        if (y.photographer.toLowerCase().includes(q)) {
+          photographerResults.push({
+            key: `photographer:${town.name}:${y.year}:${y.photographer}`,
+            type: 'photographer',
+            town,
+            year: y.year,
+            photographer: y.photographer,
+          })
+        }
+      }
+    }
+
+    const allResults = [...townResults, ...photographerResults]
+    allResults.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'town' ? -1 : 1
+      if (a.town.hasPhotos !== b.town.hasPhotos) return a.town.hasPhotos ? -1 : 1
+      if (a.town.name !== b.town.name) return a.town.name.localeCompare(b.town.name)
+      if (a.type === 'photographer' && b.type === 'photographer') return b.year - a.year
+      return 0
     })
+    return allResults
+  }, [visibleTowns, q, filter])
 
   const handleSelect = useCallback((town: TownLocation) => {
     setQuery(town.name)
@@ -71,7 +133,7 @@ export default function MapSearch({ onTownFocus }: MapSearchProps) {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search towns... ( / )"
+          placeholder="Search towns or photographers... ( / )"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -118,24 +180,28 @@ export default function MapSearch({ onTownFocus }: MapSearchProps) {
 
           {/* Town list */}
           <div className="py-1">
-            {filtered.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-zinc-400 dark:text-zinc-500">No towns found</div>
+            {results.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-zinc-400 dark:text-zinc-500">No matches found</div>
             ) : (
-              filtered.map(town => (
+              results.map(result => (
                 <button
-                  key={town.name}
-                  onClick={() => handleSelect(town)}
+                  key={result.key}
+                  onClick={() => handleSelect(result.town)}
                   className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <span className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                    town.hasPhotos ? 'bg-amber-400' : 'bg-zinc-600'
+                    result.town.hasPhotos ? 'bg-amber-400' : 'bg-zinc-600'
                   }`} />
-                  <span className="text-zinc-800 dark:text-zinc-200">{town.name}</span>
-                  {town.hasPhotos && town.years && (
+                  <span className="text-zinc-800 dark:text-zinc-200">
+                    {result.type === 'town' ? result.town.name : `${result.photographer} (${result.year})`}
+                  </span>
+                  {result.type === 'photographer' ? (
+                    <span className="ml-auto text-xs text-zinc-500">{result.town.name}</span>
+                  ) : result.town.hasPhotos && result.town.years ? (
                     <span className="ml-auto text-xs text-zinc-500">
-                      {town.years.length} {town.years.length === 1 ? 'gallery' : 'galleries'}
+                      {result.town.years.length} {result.town.years.length === 1 ? 'gallery' : 'galleries'}
                     </span>
-                  )}
+                  ) : null}
                 </button>
               ))
             )}
@@ -143,7 +209,7 @@ export default function MapSearch({ onTownFocus }: MapSearchProps) {
 
           {/* Result count */}
           <div className="border-t border-zinc-200 dark:border-zinc-700 px-4 py-1.5 text-xs text-zinc-400 dark:text-zinc-500">
-            {filtered.length} of {allTowns.length} towns
+            {results.length} results
           </div>
         </div>
       )}
