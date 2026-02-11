@@ -6,8 +6,36 @@ import { X } from 'lucide-react'
 import { townsWithPhotos } from '@/lib/towns'
 import { slugify } from '@/lib/utils'
 
-export default function TownList() {
+interface DbProject {
+  townName: string
+  year: number
+  photographer: string
+}
+
+export default function TownList({ dbProjects = [] }: { dbProjects?: DbProject[] }) {
   const [open, setOpen] = useState(false)
+  const dbByTown = new Map<string, { year: number; photographer: string }[]>()
+
+  for (const p of dbProjects) {
+    const existing = dbByTown.get(p.townName) || []
+    existing.push({ year: p.year, photographer: p.photographer })
+    dbByTown.set(p.townName, existing)
+  }
+
+  const mergedTowns = townsWithPhotos.map(town => {
+    const dbYears = dbByTown.get(town.name)
+    if (!dbYears) return town
+
+    const existingYears = town.years || []
+    const existingYearNums = new Set(existingYears.map(y => y.year))
+    const newYears = dbYears.filter(y => !existingYearNums.has(y.year))
+    const mergedYears = [...existingYears, ...newYears].sort((a, b) => b.year - a.year)
+
+    return {
+      ...town,
+      years: mergedYears,
+    }
+  })
 
   return (
     <>
@@ -35,7 +63,7 @@ export default function TownList() {
               Towns
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-              {townsWithPhotos
+              {mergedTowns
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map(town => (
                   <div key={town.name}>
