@@ -18,40 +18,34 @@ interface InteractiveMapProps {
   theme?: 'dark' | 'light'
 }
 
-const I64_ILLINOIS_GEOJSON: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [-90.1655, 38.6128], // East St. Louis area (MO/IL border)
-          [-89.987, 38.593], // O'Fallon
-          [-89.71, 38.615], // Scott AFB / Mascoutah area
-          [-89.39, 38.607], // Nashville area
-          [-89.09, 38.316], // Mt. Vernon area
-          [-88.95, 38.617], // Salem area
-          [-88.63, 38.53], // Effingham split area
-          [-88.3, 38.4], // Flora area
-          [-87.98, 38.39], // Grayville / IN border
-        ],
-      },
-      properties: {},
-    },
-  ],
+const ILLINOIS_BOUNDS_POLYGON: GeoJSON.Polygon = {
+  type: 'Polygon',
+  coordinates: [[
+    [-91.7, 36.95],
+    [-87.45, 36.95],
+    [-87.45, 42.55],
+    [-91.7, 42.55],
+    [-91.7, 36.95],
+  ]],
 }
 
 function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark: boolean) {
-  mapInstance.addSource('i64-illinois', {
-    type: 'geojson',
-    data: I64_ILLINOIS_GEOJSON,
-  })
-
   mapInstance.addLayer({
     id: 'i64-illinois-outline',
     type: 'line',
-    source: 'i64-illinois',
+    source: 'composite',
+    'source-layer': 'road',
+    filter: [
+      'all',
+      ['==', ['get', 'class'], 'motorway'],
+      [
+        'any',
+        ['in', 'I-64', ['coalesce', ['get', 'ref'], '']],
+        ['in', 'I 64', ['coalesce', ['get', 'ref'], '']],
+        ['in', 'Interstate 64', ['coalesce', ['get', 'name'], '']],
+      ],
+      ['within', ILLINOIS_BOUNDS_POLYGON as any],
+    ],
     paint: {
       'line-color': isDark ? '#713f12' : '#fef08a',
       'line-width': [
@@ -67,7 +61,19 @@ function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark:
   mapInstance.addLayer({
     id: 'i64-illinois',
     type: 'line',
-    source: 'i64-illinois',
+    source: 'composite',
+    'source-layer': 'road',
+    filter: [
+      'all',
+      ['==', ['get', 'class'], 'motorway'],
+      [
+        'any',
+        ['in', 'I-64', ['coalesce', ['get', 'ref'], '']],
+        ['in', 'I 64', ['coalesce', ['get', 'ref'], '']],
+        ['in', 'Interstate 64', ['coalesce', ['get', 'name'], '']],
+      ],
+      ['within', ILLINOIS_BOUNDS_POLYGON as any],
+    ],
     paint: {
       'line-color': isDark ? '#ca8a04' : '#fde047',
       'line-width': [
