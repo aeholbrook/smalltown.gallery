@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { deleteFromR2, isR2Configured } from '@/lib/storage/r2'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -127,15 +128,14 @@ export async function deleteProject(
     return { error: 'Project not found.' }
   }
 
-  // Delete photos from Vercel Blob if configured (skip filesystem photos served via /photos/ route)
-  if (process.env.BLOB_READ_WRITE_TOKEN && project.photos.length > 0) {
-    const { del } = await import('@vercel/blob')
+  // Delete photos from object storage if configured (skip filesystem photos served via /photos/ route)
+  if (isR2Configured() && project.photos.length > 0) {
     for (const photo of project.photos) {
       if (!photo.blobUrl.startsWith('/photos/')) {
         try {
-          await del(photo.blobUrl)
+          await deleteFromR2(photo.pathname || photo.blobUrl)
         } catch {
-          // Blob may already be deleted
+          // Object may already be deleted
         }
       }
     }
