@@ -16,6 +16,7 @@ interface InteractiveMapProps {
   onMapReady?: (actions: MapActions) => void
   dbProjects?: DbProject[]
   theme?: 'dark' | 'light'
+  selectedYear?: number | 'all'
 }
 
 function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark: boolean) {
@@ -104,7 +105,13 @@ function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark:
   })
 }
 
-export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = [], theme = 'dark' }: InteractiveMapProps) {
+export default function InteractiveMap({
+  onTownSelect,
+  onMapReady,
+  dbProjects = [],
+  theme = 'dark',
+  selectedYear = 'all',
+}: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const popupRef = useRef<mapboxgl.Popup | null>(null)
@@ -127,10 +134,10 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
       const dbYears = dbByTown.get(town.name)
       if (!dbYears) return town
 
-      // Merge: combine static years with DB years, dedup by year
+      // Merge: combine static years with DB years, dedup by year+photographer
       const existingYears = town.years || []
-      const existingYearNums = new Set(existingYears.map(y => y.year))
-      const newYears = dbYears.filter(y => !existingYearNums.has(y.year))
+      const existingYearKeys = new Set(existingYears.map(y => `${y.year}-${y.photographer}`))
+      const newYears = dbYears.filter(y => !existingYearKeys.has(`${y.year}-${y.photographer}`))
       const mergedYears = [...existingYears, ...newYears]
 
       return {
@@ -140,6 +147,18 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
       }
     })
   }, [dbProjects])
+
+  const filteredTowns = useMemo(() => {
+    if (selectedYear === 'all') return mergedTowns
+    return mergedTowns.map(town => {
+      const years = (town.years || []).filter(y => y.year === selectedYear)
+      return {
+        ...town,
+        hasPhotos: years.length > 0,
+        years,
+      }
+    })
+  }, [mergedTowns, selectedYear])
 
   const handleMarkerClick = useCallback((town: TownLocation) => {
     onTownSelect?.(town)
@@ -189,7 +208,7 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
         },
       })
 
-      addTownLayers(mapInstance, mergedTowns, isDark)
+      addTownLayers(mapInstance, filteredTowns, isDark)
 
       // Hover state for interactive towns
       mapInstance.on('mouseenter', 'towns-with-photos', () => {
@@ -216,7 +235,7 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
         const props = feature.properties!
         const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
         const years = JSON.parse(props.years || '[]') as { year: number; photographer: string }[]
-        const town = mergedTowns.find(t => t.name === props.name)
+        const town = filteredTowns.find(t => t.name === props.name)
 
         // Build popup content
         const yearLinks = years.map(y =>
@@ -278,7 +297,7 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
       map.current = null
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleMarkerClick, mergedTowns])
+  }, [handleMarkerClick, filteredTowns])
 
   // Swap map style when theme changes
   useEffect(() => {
@@ -290,10 +309,10 @@ export default function InteractiveMap({ onTownSelect, onMapReady, dbProjects = 
     const isDark = theme === 'dark'
     m.setStyle(`mapbox://styles/mapbox/${isDark ? 'dark' : 'light'}-v11`)
     m.once('style.load', () => {
-      addTownLayers(m, mergedTowns, isDark)
+      addTownLayers(m, filteredTowns, isDark)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme])
+  }, [theme, filteredTowns])
 
   return (
     <div className="relative h-full w-full">

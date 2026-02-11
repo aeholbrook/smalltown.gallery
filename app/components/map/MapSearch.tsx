@@ -6,13 +6,20 @@ import { allTowns, type TownLocation } from '@/lib/towns'
 interface MapSearchProps {
   onTownFocus?: (town: TownLocation) => void
   dbProjects?: { townName: string; year: number; photographer: string }[]
+  yearFilter?: number | 'all'
+  onYearFilterChange?: (year: number | 'all') => void
 }
 
 type SearchResult =
   | { key: string; type: 'town'; town: TownLocation }
   | { key: string; type: 'photographer'; town: TownLocation; year: number; photographer: string }
 
-export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchProps) {
+export default function MapSearch({
+  onTownFocus,
+  dbProjects = [],
+  yearFilter = 'all',
+  onYearFilterChange,
+}: MapSearchProps) {
   const [query, setQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [filter, setFilter] = useState<'all' | 'photos' | 'no-photos'>('all')
@@ -45,7 +52,27 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
     })
   }, [dbProjects])
 
-  const visibleTowns = mergedTowns.filter(t => {
+  const availableYears = useMemo(() => {
+    const years = new Set<number>()
+    for (const town of mergedTowns) {
+      for (const y of town.years || []) years.add(y.year)
+    }
+    return Array.from(years).sort((a, b) => b - a)
+  }, [mergedTowns])
+
+  const yearScopedTowns = useMemo(() => {
+    if (yearFilter === 'all') return mergedTowns
+    return mergedTowns.map(town => {
+      const years = (town.years || []).filter(y => y.year === yearFilter)
+      return {
+        ...town,
+        hasPhotos: years.length > 0,
+        years,
+      }
+    })
+  }, [mergedTowns, yearFilter])
+
+  const visibleTowns = yearScopedTowns.filter(t => {
     if (filter === 'photos') return t.hasPhotos
     if (filter === 'no-photos') return !t.hasPhotos
     return true
@@ -152,6 +179,25 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
             </svg>
           </button>
         )}
+      </div>
+
+      <div className="mt-1">
+        <select
+          value={yearFilter === 'all' ? 'all' : String(yearFilter)}
+          onChange={(e) => {
+            const value = e.target.value === 'all' ? 'all' : Number(e.target.value)
+            onYearFilterChange?.(value)
+            setShowResults(true)
+          }}
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 transition-colors"
+        >
+          <option value="all">All years</option>
+          {availableYears.map(year => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Results dropdown */}

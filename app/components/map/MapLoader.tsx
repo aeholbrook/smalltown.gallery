@@ -29,6 +29,7 @@ export interface DbProject {
 export default function MapLoader({ dbProjects = [] }: { dbProjects?: DbProject[] }) {
   const { theme } = useTheme()
   const [mapActions, setMapActions] = useState<MapActions | null>(null)
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   const handleMapReady = useCallback((actions: MapActions) => {
     setMapActions(actions)
@@ -40,8 +41,18 @@ export default function MapLoader({ dbProjects = [] }: { dbProjects?: DbProject[
 
   return (
     <div className="relative h-full w-full">
-      <InteractiveMap dbProjects={dbProjects} onMapReady={handleMapReady} theme={theme} />
-      <MapSearch onTownFocus={handleTownFocus} dbProjects={dbProjects} />
+      <InteractiveMap
+        dbProjects={dbProjects}
+        onMapReady={handleMapReady}
+        theme={theme}
+        selectedYear={selectedYear}
+      />
+      <MapSearch
+        onTownFocus={handleTownFocus}
+        dbProjects={dbProjects}
+        yearFilter={selectedYear}
+        onYearFilterChange={setSelectedYear}
+      />
     </div>
   )
 }
