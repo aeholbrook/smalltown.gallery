@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { allTowns, type TownLocation } from '@/lib/towns'
+import { slugify } from '@/lib/utils'
 
 interface MapSearchProps {
   onTownFocus?: (town: TownLocation) => void
@@ -11,9 +13,13 @@ interface MapSearchProps {
 type SearchResult =
   | { key: string; type: 'town'; town: TownLocation }
   | { key: string; type: 'year'; town: TownLocation; year: number; photographer: string }
+  | { key: string; type: 'photographer-profile'; photographer: string; projectCount: number }
   | { key: string; type: 'photographer'; town: TownLocation; year: number; photographer: string }
 
+type TownBackedSearchResult = Extract<SearchResult, { town: TownLocation }>
+
 export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchProps) {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [filter, setFilter] = useState<'all' | 'photos' | 'no-photos'>('all')
@@ -81,8 +87,10 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
     }
 
     const photographerResults: SearchResult[] = []
+    const photographerProjectCounts = new Map<string, number>()
     for (const town of visibleTowns) {
       for (const y of town.years || []) {
+        photographerProjectCounts.set(y.photographer, (photographerProjectCounts.get(y.photographer) || 0) + 1)
         if (y.photographer.toLowerCase().includes(q)) {
           photographerResults.push({
             key: `photographer:${town.name}:${y.year}:${y.photographer}`,
@@ -95,25 +103,55 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
       }
     }
 
-    const allResults = [...townResults, ...yearResults, ...photographerResults]
+    const photographerProfileResults: SearchResult[] = Array.from(photographerProjectCounts.entries())
+      .filter(([name]) => name.toLowerCase().includes(q))
+      .map(([photographer, projectCount]) => ({
+        key: `photographer-profile:${photographer}`,
+        type: 'photographer-profile',
+        photographer,
+        projectCount,
+      }))
+
+    const allResults = [...townResults, ...photographerProfileResults, ...yearResults, ...photographerResults]
     allResults.sort((a, b) => {
       if (a.type !== b.type) {
-        const rank = (t: SearchResult['type']) => (t === 'town' ? 0 : t === 'year' ? 1 : 2)
+        const rank = (t: SearchResult['type']) => {
+          if (t === 'town') return 0
+          if (t === 'photographer-profile') return 1
+          if (t === 'year') return 2
+          return 3
+        }
         return rank(a.type) - rank(b.type)
       }
-      if (a.town.hasPhotos !== b.town.hasPhotos) return a.town.hasPhotos ? -1 : 1
-      if (a.town.name !== b.town.name) return a.town.name.localeCompare(b.town.name)
-      if (a.type !== 'town' && b.type !== 'town') return b.year - a.year
+      if (a.type === 'photographer-profile' && b.type === 'photographer-profile') {
+        if (a.projectCount !== b.projectCount) return b.projectCount - a.projectCount
+        return a.photographer.localeCompare(b.photographer)
+      }
+
+      if (a.type === 'photographer-profile' || b.type === 'photographer-profile') return 0
+
+      const aTown = a as TownBackedSearchResult
+      const bTown = b as TownBackedSearchResult
+      if (aTown.town.hasPhotos !== bTown.town.hasPhotos) return aTown.town.hasPhotos ? -1 : 1
+      if (aTown.town.name !== bTown.town.name) return aTown.town.name.localeCompare(bTown.town.name)
+      if (aTown.type !== 'town' && bTown.type !== 'town') return bTown.year - aTown.year
       return 0
     })
     return allResults
   }, [visibleTowns, q, filter])
 
-  const handleSelect = useCallback((town: TownLocation) => {
-    setQuery(town.name)
+  const handleSelect = useCallback((result: SearchResult) => {
+    if (result.type === 'photographer-profile') {
+      setQuery(result.photographer)
+      setShowResults(false)
+      router.push(`/photographers/${slugify(result.photographer)}`)
+      return
+    }
+
+    setQuery(result.town.name)
     setShowResults(false)
-    onTownFocus?.(town)
-  }, [onTownFocus])
+    onTownFocus?.(result.town)
+  }, [onTownFocus, router])
 
   // Close on click outside
   useEffect(() => {
@@ -205,20 +243,30 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
               results.map(result => (
                 <button
                   key={result.key}
-                  onClick={() => handleSelect(result.town)}
+                  onClick={() => handleSelect(result)}
                   className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
-                  <span className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                    result.town.hasPhotos ? 'bg-amber-400' : 'bg-zinc-600'
-                  }`} />
+                  {result.type === 'photographer-profile' ? (
+                    <span className="h-2 w-2 rounded-full flex-shrink-0 bg-cyan-400" />
+                  ) : (
+                    <span className={`h-2 w-2 rounded-full flex-shrink-0 ${
+                      result.town.hasPhotos ? 'bg-amber-400' : 'bg-zinc-600'
+                    }`} />
+                  )}
                   <span className="text-zinc-800 dark:text-zinc-200">
                     {result.type === 'town'
                       ? result.town.name
+                      : result.type === 'photographer-profile'
+                        ? result.photographer
                       : result.type === 'year'
                         ? `${result.town.name} (${result.year})`
                         : `${result.photographer} (${result.year})`}
                   </span>
-                  {result.type === 'photographer' ? (
+                  {result.type === 'photographer-profile' ? (
+                    <span className="ml-auto text-xs text-zinc-500">
+                      {result.projectCount} {result.projectCount === 1 ? 'project' : 'projects'}
+                    </span>
+                  ) : result.type === 'photographer' ? (
                     <span className="ml-auto text-xs text-zinc-500">{result.town.name}</span>
                   ) : result.type === 'year' ? (
                     <span className="ml-auto text-xs text-zinc-500">{result.photographer}</span>

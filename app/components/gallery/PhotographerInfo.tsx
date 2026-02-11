@@ -17,7 +17,7 @@ export function PhotographerInfo({ descriptionHtml }: PhotographerInfoProps) {
         className="flex w-full items-center justify-between text-left"
       >
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
-          About the Photographer
+          Photographer Project Statement
         </h2>
         {expanded ? (
           <ChevronUp className="text-zinc-400" size={20} />
