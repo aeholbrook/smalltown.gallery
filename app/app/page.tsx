@@ -1,6 +1,7 @@
 import Header from '@/components/ui/Header'
 import AboutPanel from '@/components/ui/AboutPanel'
 import TownList from '@/components/ui/TownList'
+import PhotographerList from '@/components/ui/PhotographerList'
 import MapLoader from '@/components/map/MapLoader'
 import RollingGallery from '@/components/map/RollingGallery'
 import { prisma } from '@/lib/db'
@@ -62,6 +63,7 @@ function BottomBar({ dbProjects = [] }: { dbProjects?: { townName: string; slug:
     <div className="flex items-center justify-center gap-8 bg-zinc-200 dark:bg-zinc-900 border-t border-zinc-300 dark:border-zinc-800 px-4 py-2 transition-colors">
       <AboutPanel />
       <TownList dbProjects={dbProjects} />
+      <PhotographerList dbProjects={dbProjects} />
     </div>
   )
 }

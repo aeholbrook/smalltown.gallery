@@ -1,5 +1,7 @@
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 import { ChangePasswordForm } from '@/components/dashboard/ChangePasswordForm'
+import { ProfileEditorForm } from '@/components/dashboard/ProfileEditorForm'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -8,6 +10,12 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const session = await auth()
+  const user = session?.user?.id
+    ? await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { bio: true, website: true, location: true, profilePhotoUrl: true },
+    })
+    : null
 
   return (
     <div>
@@ -45,6 +53,21 @@ export default async function ProfilePage() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
+            Public Photographer Profile
+          </h2>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+            This information appears on your public photographer page.
+          </p>
+          <ProfileEditorForm
+            bio={user?.bio || null}
+            website={user?.website || null}
+            location={user?.location || null}
+            profilePhotoUrl={user?.profilePhotoUrl || null}
+          />
         </div>
 
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">

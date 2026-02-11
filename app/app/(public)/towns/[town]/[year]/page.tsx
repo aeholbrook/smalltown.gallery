@@ -7,6 +7,7 @@ import { getGalleryData, getAllGalleryParams } from '@/lib/gallery'
 import { PhotoGallery } from '@/components/gallery/PhotoGallery'
 import { PhotographerInfo } from '@/components/gallery/PhotographerInfo'
 import Header from '@/components/ui/Header'
+import { slugify } from '@/lib/utils'
 
 interface PageProps {
   params: Promise<{ town: string; year: string }>
@@ -58,7 +59,13 @@ export default async function GalleryPage({ params }: PageProps) {
             <span className="text-zinc-400 dark:text-zinc-500">, Illinois</span>
           </h1>
           <p className="mt-2 text-lg text-zinc-600 dark:text-zinc-400">
-            {gallery.year} — Photographs by {gallery.photographer}
+            {gallery.year} — Photographs by{' '}
+            <Link
+              href={`/photographers/${slugify(gallery.photographer)}`}
+              className="underline decoration-zinc-300 dark:decoration-zinc-600 hover:decoration-amber-500"
+            >
+              {gallery.photographer}
+            </Link>
           </p>
         </div>
 
