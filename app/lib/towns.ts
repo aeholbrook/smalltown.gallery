@@ -13,7 +13,7 @@ export interface TownLocation {
 // Towns that currently have photo data on the site
 export const townsWithPhotos: TownLocation[] = [
   { name: 'Belknap', lat: 37.323230, lng: -88.939540, hasPhotos: true, years: [{ year: 2020, photographer: 'Leah Sutton' }] },
-  { name: 'Crab Orchard', lat: 37.7295138, lng: -88.8038199, hasPhotos: true, years: [{ year: 2016, photographer: 'Adam Holbrook' }] },
+  { name: 'Crab Orchard', lat: 37.7295138, lng: -88.8038199, hasPhotos: true, years: [{ year: 2018, photographer: 'Adam Holbrook' }] },
   { name: 'Fayetteville', lat: 38.377323, lng: -89.79467, hasPhotos: true, years: [{ year: 2018, photographer: 'Natalie Wilkerson' }] },
   { name: 'Oakdale', lat: 38.2615876, lng: -89.5014241, hasPhotos: true, years: [{ year: 2016, photographer: 'Adam Holbrook' }] },
   { name: 'Omaha', lat: 37.8901788, lng: -88.3026621, hasPhotos: true, years: [{ year: 2020, photographer: 'Nicole Tillberg' }] },

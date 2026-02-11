@@ -292,12 +292,14 @@ export default function InteractiveMap({
 
         // Build popup content
         const yearLinks = years.map(y =>
-          `<a href="/towns/${props.slug}/${y.year}" class="map-popup-link">${y.year} — <em>${y.photographer}</em></a>`
+          `<a href="/towns/${props.slug}/${y.year}" class="map-popup-link map-popup-link-year">${y.year} — <em>${y.photographer}</em></a>`
         ).join('')
 
         const popupHTML = `
           <div class="map-popup">
-            <h3 class="map-popup-title"><a href="/towns/${props.slug}" class="map-popup-link">${props.name}</a></h3>
+            <h3 class="map-popup-title">${props.name}</h3>
+            <a href="/towns/${props.slug}" class="map-popup-link map-popup-link-town">View Town Overview</a>
+            <p class="map-popup-section-label">Or pick a specific gallery year</p>
             <div class="map-popup-years">${yearLinks}</div>
           </div>
         `
