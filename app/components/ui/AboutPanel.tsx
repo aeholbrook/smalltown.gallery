@@ -10,7 +10,7 @@ export default function AboutPanel() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-sm text-zinc-400 hover:text-white transition-colors"
+        className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
       >
         About
       </button>
@@ -18,20 +18,20 @@ export default function AboutPanel() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60"
             onClick={() => setOpen(false)}
           />
-          <div className="relative w-full max-w-2xl max-h-[70vh] overflow-y-auto bg-zinc-900 border border-zinc-700 rounded-t-xl sm:rounded-xl p-6 sm:p-8 animate-slide-up">
+          <div className="relative w-full max-w-2xl max-h-[70vh] overflow-y-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-t-xl sm:rounded-xl p-6 sm:p-8 animate-slide-up transition-colors">
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+              className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
-            <h2 className="text-xl font-semibold text-white mb-4">
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">
               About Small Town Documentary
             </h2>
-            <div className="space-y-4 text-sm leading-relaxed text-zinc-300" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
+            <div className="space-y-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
               <p>
                 Professor Dan Overturf started the Small Town Documentary class
                 in August 1996, in the Department of Cinema and Photography at
@@ -77,14 +77,14 @@ export default function AboutPanel() {
                 communities remains at the heart of the class and is essential
                 to the success of the photographs.
               </p>
-              <p className="text-zinc-400 italic">
+              <p className="text-zinc-600 dark:text-zinc-400 italic">
                 Additional thanks goes out to Adam Holbrook who created this
                 website. He was one of the few students who chose to document
                 two different towns in two different class sessions. He has
                 generously donated his time and talents to establish a
                 wonderful online archive.
               </p>
-              <p className="text-zinc-400 italic">
+              <p className="text-zinc-600 dark:text-zinc-400 italic">
                 NOTE: Lastly, I would like to send my gratitude to every
                 student who has taken the class once and/or sometimes twice,
                 and the marvelous former students who came back to TA the
