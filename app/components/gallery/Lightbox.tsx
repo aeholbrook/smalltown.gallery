@@ -21,6 +21,32 @@ export function Lightbox({ galleryRef }: LightboxProps) {
       paddingFn: () => ({ top: 40, bottom: 40, left: 20, right: 20 }),
     })
 
+    lightbox.on('uiRegister', () => {
+      lightbox.pswp?.ui?.registerElement({
+        name: 'custom-caption',
+        order: 9,
+        isButton: false,
+        appendTo: 'root',
+        html: '',
+        onInit: (el, pswp) => {
+          const updateCaption = () => {
+            const currSlideElement = pswp.currSlide?.data.element as HTMLElement | undefined
+            const caption = currSlideElement?.getAttribute('data-pswp-caption')?.trim() || ''
+            if (caption) {
+              el.innerHTML = caption
+              el.classList.remove('pswp__custom-caption--empty')
+            } else {
+              el.innerHTML = ''
+              el.classList.add('pswp__custom-caption--empty')
+            }
+          }
+
+          pswp.on('change', updateCaption)
+          updateCaption()
+        },
+      })
+    })
+
     lightbox.init()
 
     return () => {

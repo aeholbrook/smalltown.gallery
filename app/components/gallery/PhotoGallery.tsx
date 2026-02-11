@@ -59,6 +59,7 @@ export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
             href={photo.src}
             data-pswp-width={photo.width || 1600}
             data-pswp-height={photo.height || 1200}
+            data-pswp-caption={photo.title?.trim() || undefined}
             className="group relative mb-2 block overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800"
             target="_blank"
             rel="noreferrer"
