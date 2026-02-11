@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
-import { townsWithPhotos } from '@/lib/towns'
+import { allTowns } from '@/lib/towns'
 import { slugify } from '@/lib/utils'
 
 interface DbProject {
@@ -22,7 +22,7 @@ export default function TownList({ dbProjects = [] }: { dbProjects?: DbProject[]
     dbByTown.set(p.townName, existing)
   }
 
-  const mergedTowns = townsWithPhotos.map(town => {
+  const mergedTowns = allTowns.map(town => {
     const dbYears = dbByTown.get(town.name)
     if (!dbYears) return town
 
@@ -33,9 +33,10 @@ export default function TownList({ dbProjects = [] }: { dbProjects?: DbProject[]
 
     return {
       ...town,
+      hasPhotos: mergedYears.length > 0,
       years: mergedYears,
     }
-  })
+  }).filter(town => (town.years?.length || 0) > 0)
 
   return (
     <>
