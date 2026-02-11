@@ -6,6 +6,7 @@ import { isR2Configured, uploadBufferToR2 } from '@/lib/storage/r2'
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_BYTES = 20 * 1024 * 1024
+// No-op tweak to trigger a fresh deployment.
 
 function sanitizeFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/_+/g, '_') || 'upload.jpg'
