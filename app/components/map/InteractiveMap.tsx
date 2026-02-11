@@ -18,7 +18,68 @@ interface InteractiveMapProps {
   theme?: 'dark' | 'light'
 }
 
+const I64_ILLINOIS_GEOJSON: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [-90.1655, 38.6128], // East St. Louis area (MO/IL border)
+          [-89.987, 38.593], // O'Fallon
+          [-89.71, 38.615], // Scott AFB / Mascoutah area
+          [-89.39, 38.607], // Nashville area
+          [-89.09, 38.316], // Mt. Vernon area
+          [-88.95, 38.617], // Salem area
+          [-88.63, 38.53], // Effingham split area
+          [-88.3, 38.4], // Flora area
+          [-87.98, 38.39], // Grayville / IN border
+        ],
+      },
+      properties: {},
+    },
+  ],
+}
+
 function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark: boolean) {
+  mapInstance.addSource('i64-illinois', {
+    type: 'geojson',
+    data: I64_ILLINOIS_GEOJSON,
+  })
+
+  mapInstance.addLayer({
+    id: 'i64-illinois-outline',
+    type: 'line',
+    source: 'i64-illinois',
+    paint: {
+      'line-color': isDark ? '#713f12' : '#fef08a',
+      'line-width': [
+        'interpolate', ['linear'], ['zoom'],
+        6, 4,
+        10, 7,
+        14, 10,
+      ],
+      'line-opacity': isDark ? 0.9 : 0.8,
+    },
+  })
+
+  mapInstance.addLayer({
+    id: 'i64-illinois',
+    type: 'line',
+    source: 'i64-illinois',
+    paint: {
+      'line-color': isDark ? '#ca8a04' : '#fde047',
+      'line-width': [
+        'interpolate', ['linear'], ['zoom'],
+        6, 2,
+        10, 4,
+        14, 6,
+      ],
+      'line-opacity': 0.95,
+    },
+  })
+
   mapInstance.addSource('towns', {
     type: 'geojson',
     data: {
