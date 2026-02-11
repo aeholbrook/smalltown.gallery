@@ -52,16 +52,16 @@ export default async function Home() {
           <RollingGallery previews={rightPreviews} direction="down" />
         </div>
       </main>
-      <BottomBar />
+      <BottomBar dbProjects={dbProjects} />
     </div>
   )
 }
 
-function BottomBar() {
+function BottomBar({ dbProjects = [] }: { dbProjects?: { townName: string; slug: string; year: number; photographer: string }[] }) {
   return (
     <div className="flex items-center justify-center gap-8 bg-zinc-200 dark:bg-zinc-900 border-t border-zinc-300 dark:border-zinc-800 px-4 py-2 transition-colors">
       <AboutPanel />
-      <TownList />
+      <TownList dbProjects={dbProjects} />
     </div>
   )
 }
