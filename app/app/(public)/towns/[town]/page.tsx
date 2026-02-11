@@ -1,0 +1,133 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { ArrowLeft, Camera } from 'lucide-react'
+import { unstable_noStore as noStore } from 'next/cache'
+import Header from '@/components/ui/Header'
+import { slugify } from '@/lib/utils'
+import RollingGallery from '@/components/map/RollingGallery'
+import { getAllTownParams, getTownGalleryOptions, getTownGalleryPreviews } from '@/lib/gallery'
+
+interface PageProps {
+  params: Promise<{ town: string }>
+}
+
+export const dynamic = 'force-dynamic'
+
+export async function generateStaticParams() {
+  return getAllTownParams()
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  noStore()
+  const { town } = await params
+  const options = await getTownGalleryOptions(town)
+
+  if (options.length === 0) return { title: 'Not Found' }
+
+  const townName = options[0].townName
+  return {
+    title: `${townName}, Illinois — Town Galleries`,
+    description: `Browse published documentary projects for ${townName}, Illinois by year and photographer.`,
+  }
+}
+
+export default async function TownLandingPage({ params }: PageProps) {
+  noStore()
+  const { town } = await params
+  const options = await getTownGalleryOptions(town)
+
+  if (options.length === 0) notFound()
+
+  const townName = options[0].townName
+  const photographerLinks = new Set<string>()
+  for (const option of options) {
+    photographerLinks.add(option.photographer)
+  }
+  const leftPreviews = await getTownGalleryPreviews(town, 12)
+  const rightPreviews = await getTownGalleryPreviews(town, 12)
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+      <Header />
+      <main className="relative flex flex-1 min-h-0">
+        <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 transition-colors">
+          <RollingGallery previews={leftPreviews} direction="up" />
+        </div>
+
+        <div className="relative flex-1 min-w-0 overflow-y-auto">
+          <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors mb-6"
+            >
+              <ArrowLeft size={16} />
+              Back to Map
+            </Link>
+
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-zinc-900 dark:text-white sm:text-4xl">
+                {townName}
+                <span className="text-zinc-400 dark:text-zinc-500">, Illinois</span>
+              </h1>
+              <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+                Select a year and photographer to open a gallery.
+              </p>
+            </div>
+
+            <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60 p-4 sm:p-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-4">
+                Available Galleries ({options.length})
+              </h2>
+              <div className="grid grid-cols-1 gap-3">
+                {options.map(option => (
+                  <Link
+                    key={option.id}
+                    href={`/towns/${option.townSlug}/${option.year}`}
+                    className="flex items-center gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-4 py-3 hover:border-amber-400/50 hover:bg-amber-50/50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                      <Camera size={16} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-base font-medium text-zinc-900 dark:text-white">
+                        {option.year}
+                      </p>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+                        {option.photographer}
+                      </p>
+                    </div>
+                    <span className="ml-auto text-xs text-zinc-500 dark:text-zinc-500">
+                      {option.photoCount} {option.photoCount === 1 ? 'photo' : 'photos'}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+              <p>
+                Photographers:{' '}
+                {Array.from(photographerLinks).map((name, index) => (
+                  <span key={name}>
+                    <Link
+                      href={`/photographers/${slugify(name)}`}
+                      className="underline decoration-zinc-300 dark:decoration-zinc-600 hover:decoration-amber-500"
+                    >
+                      {name}
+                    </Link>
+                    {index < photographerLinks.size - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-l border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 transition-colors">
+          <RollingGallery previews={rightPreviews} direction="down" />
+        </div>
+      </main>
+    </div>
+  )
+}

@@ -151,6 +151,15 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
     setQuery(result.town.name)
     setShowResults(false)
     onTownFocus?.(result.town)
+
+    if (result.type === 'town' && result.town.hasPhotos) {
+      router.push(`/towns/${slugify(result.town.name)}`)
+      return
+    }
+
+    if (result.type === 'year' || result.type === 'photographer') {
+      router.push(`/towns/${slugify(result.town.name)}/${result.year}`)
+    }
   }, [onTownFocus, router])
 
   // Close on click outside

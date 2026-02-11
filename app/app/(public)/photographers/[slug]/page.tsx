@@ -13,29 +13,29 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params
-  const users = await prisma.user.findMany({
-    where: {
-      role: { not: 'PENDING' },
-      projects: { some: { published: true } },
-    },
-    select: { name: true, bio: true },
-  })
-  const photographer = users.find(u => slugify(u.name) === slug)
-  if (!photographer) return { title: 'Photographer Not Found' }
-
-  return {
-    title: `${photographer.name} — Photographer`,
-    description: photographer.bio
-      ? photographer.bio.slice(0, 160)
-      : `View documentary projects by ${photographer.name}.`,
-  }
+interface PhotographerProfileData {
+  id: string
+  name: string
+  bio: string | null
+  website: string | null
+  location: string | null
+  profilePhotoUrl: string | null
 }
 
-export default async function PhotographerPage({ params }: PageProps) {
-  const { slug } = await params
+interface PhotographerProjectData {
+  id: string
+  year: number
+  photoCount: number
+  town: { name: string }
+}
 
+interface ResolvedPhotographerPageData {
+  photographer: PhotographerProfileData
+  projects: PhotographerProjectData[]
+  hasUserProfile: boolean
+}
+
+async function resolvePhotographerPageData(slug: string): Promise<ResolvedPhotographerPageData | null> {
   const users = await prisma.user.findMany({
     where: {
       role: { not: 'PENDING' },
@@ -50,14 +50,67 @@ export default async function PhotographerPage({ params }: PageProps) {
       profilePhotoUrl: true,
     },
   })
-  const photographer = users.find(u => slugify(u.name) === slug)
-  if (!photographer) notFound()
 
-  const projects = await prisma.project.findMany({
-    where: { userId: photographer.id, published: true },
+  const matchedUser = users.find(user => slugify(user.name) === slug)
+  if (matchedUser) {
+    const projects = await prisma.project.findMany({
+      where: { userId: matchedUser.id, published: true },
+      include: { town: true },
+      orderBy: [{ year: 'desc' }, { town: { name: 'asc' } }],
+    })
+
+    return {
+      photographer: matchedUser,
+      projects,
+      hasUserProfile: true,
+    }
+  }
+
+  const publishedProjects = await prisma.project.findMany({
+    where: { published: true },
     include: { town: true },
     orderBy: [{ year: 'desc' }, { town: { name: 'asc' } }],
   })
+
+  const fallbackProjects = publishedProjects.filter(project => slugify(project.photographer) === slug)
+  if (fallbackProjects.length === 0) return null
+
+  return {
+    photographer: {
+      id: `fallback-${slug}`,
+      name: fallbackProjects[0].photographer,
+      bio: null,
+      website: null,
+      location: null,
+      profilePhotoUrl: null,
+    },
+    projects: fallbackProjects,
+    hasUserProfile: false,
+  }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params
+  const pageData = await resolvePhotographerPageData(slug)
+  if (!pageData) return { title: 'Photographer Not Found' }
+
+  const { photographer, hasUserProfile } = pageData
+
+  return {
+    title: `${photographer.name} — Photographer`,
+    description: hasUserProfile && photographer.bio
+      ? photographer.bio.slice(0, 160)
+      : `View documentary projects credited to ${photographer.name}.`,
+  }
+}
+
+export default async function PhotographerPage({ params }: PageProps) {
+  const { slug } = await params
+
+  const pageData = await resolvePhotographerPageData(slug)
+  if (!pageData) notFound()
+
+  const { photographer, projects, hasUserProfile } = pageData
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors">
@@ -93,13 +146,13 @@ export default async function PhotographerPage({ params }: PageProps) {
               </h1>
 
               <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-                {photographer.location && (
+                {hasUserProfile && photographer.location && (
                   <span className="inline-flex items-center gap-1.5">
                     <MapPin size={14} />
                     {photographer.location}
                   </span>
                 )}
-                {photographer.website && (
+                {hasUserProfile && photographer.website && (
                   <a
                     href={photographer.website}
                     target="_blank"
@@ -114,7 +167,13 @@ export default async function PhotographerPage({ params }: PageProps) {
             </div>
           </div>
 
-          {photographer.bio && (
+          {!hasUserProfile && (
+            <div className="mt-8 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 p-4 text-sm text-zinc-600 dark:text-zinc-400">
+              {photographer.name} has not set up a public profile yet. Showing published towns and years credited to this photographer.
+            </div>
+          )}
+
+          {hasUserProfile && photographer.bio && (
             <div className="mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6">
               <MarkdownRenderer content={photographer.bio} />
             </div>
