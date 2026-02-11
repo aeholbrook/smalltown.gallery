@@ -16,7 +16,6 @@ interface InteractiveMapProps {
   onMapReady?: (actions: MapActions) => void
   dbProjects?: DbProject[]
   theme?: 'dark' | 'light'
-  selectedYear?: number | 'all'
 }
 
 function addTownLayers(mapInstance: mapboxgl.Map, towns: TownLocation[], isDark: boolean) {
@@ -110,7 +109,6 @@ export default function InteractiveMap({
   onMapReady,
   dbProjects = [],
   theme = 'dark',
-  selectedYear = 'all',
 }: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
@@ -147,18 +145,6 @@ export default function InteractiveMap({
       }
     })
   }, [dbProjects])
-
-  const filteredTowns = useMemo(() => {
-    if (selectedYear === 'all') return mergedTowns
-    return mergedTowns.map(town => {
-      const years = (town.years || []).filter(y => y.year === selectedYear)
-      return {
-        ...town,
-        hasPhotos: years.length > 0,
-        years,
-      }
-    })
-  }, [mergedTowns, selectedYear])
 
   const handleMarkerClick = useCallback((town: TownLocation) => {
     onTownSelect?.(town)
@@ -208,7 +194,7 @@ export default function InteractiveMap({
         },
       })
 
-      addTownLayers(mapInstance, filteredTowns, isDark)
+      addTownLayers(mapInstance, mergedTowns, isDark)
 
       // Hover state for interactive towns
       mapInstance.on('mouseenter', 'towns-with-photos', () => {
@@ -235,7 +221,7 @@ export default function InteractiveMap({
         const props = feature.properties!
         const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
         const years = JSON.parse(props.years || '[]') as { year: number; photographer: string }[]
-        const town = filteredTowns.find(t => t.name === props.name)
+        const town = mergedTowns.find(t => t.name === props.name)
 
         // Build popup content
         const yearLinks = years.map(y =>
@@ -297,7 +283,7 @@ export default function InteractiveMap({
       map.current = null
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleMarkerClick, filteredTowns])
+  }, [handleMarkerClick, mergedTowns])
 
   // Swap map style when theme changes
   useEffect(() => {
@@ -309,10 +295,10 @@ export default function InteractiveMap({
     const isDark = theme === 'dark'
     m.setStyle(`mapbox://styles/mapbox/${isDark ? 'dark' : 'light'}-v11`)
     m.once('style.load', () => {
-      addTownLayers(m, filteredTowns, isDark)
+      addTownLayers(m, mergedTowns, isDark)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme, filteredTowns])
+  }, [theme, mergedTowns])
 
   return (
     <div className="relative h-full w-full">
