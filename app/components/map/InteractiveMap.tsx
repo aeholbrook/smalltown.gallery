@@ -297,7 +297,8 @@ export default function InteractiveMap({
 
         const popupHTML = `
           <div class="map-popup">
-            <h3 class="map-popup-title"><a href="/towns/${props.slug}" class="map-popup-link">${props.name}</a></h3>
+            <h3 class="map-popup-title">${props.name}</h3>
+            <a href="/towns/${props.slug}" class="map-popup-link map-popup-link-town">View Town Overview</a>
             <div class="map-popup-years">${yearLinks}</div>
           </div>
         `
