@@ -131,8 +131,7 @@ body {
 .map-popup-years {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 2px;
 }
 
 .map-popup-link {
@@ -144,37 +143,6 @@ body {
   margin: 0 -8px;
   border-radius: 4px;
   transition: background-color 0.15s, color 0.15s;
-}
-
-.map-popup-link-town {
-  font-weight: 600;
-  background: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
-  margin: 0 0 8px;
-  padding: 6px 10px;
-}
-
-.map-popup-link-town:hover {
-  background: #fef3c7;
-  color: #78350f;
-}
-
-.map-popup-link-year {
-  border: 1px solid transparent;
-}
-
-.map-popup-link-year:hover {
-  border-color: #e4e4e7;
-}
-
-.map-popup-section-label {
-  margin: 0 0 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: #71717a;
 }
 
 .map-popup-link:hover {
@@ -221,25 +189,6 @@ body {
 }
 
 .dark .map-popup-link {
-  color: #a1a1aa;
-}
-
-.dark .map-popup-link-town {
-  background: #3f2a0d;
-  color: #fcd34d;
-  border-color: #92400e;
-}
-
-.dark .map-popup-link-town:hover {
-  background: #4a3110;
-  color: #fde68a;
-}
-
-.dark .map-popup-link-year:hover {
-  border-color: #3f3f46;
-}
-
-.dark .map-popup-section-label {
   color: #a1a1aa;
 }
 
