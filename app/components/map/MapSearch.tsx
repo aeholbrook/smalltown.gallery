@@ -6,20 +6,14 @@ import { allTowns, type TownLocation } from '@/lib/towns'
 interface MapSearchProps {
   onTownFocus?: (town: TownLocation) => void
   dbProjects?: { townName: string; year: number; photographer: string }[]
-  yearFilter?: number | 'all'
-  onYearFilterChange?: (year: number | 'all') => void
 }
 
 type SearchResult =
   | { key: string; type: 'town'; town: TownLocation }
+  | { key: string; type: 'year'; town: TownLocation; year: number; photographer: string }
   | { key: string; type: 'photographer'; town: TownLocation; year: number; photographer: string }
 
-export default function MapSearch({
-  onTownFocus,
-  dbProjects = [],
-  yearFilter = 'all',
-  onYearFilterChange,
-}: MapSearchProps) {
+export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchProps) {
   const [query, setQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [filter, setFilter] = useState<'all' | 'photos' | 'no-photos'>('all')
@@ -52,27 +46,7 @@ export default function MapSearch({
     })
   }, [dbProjects])
 
-  const availableYears = useMemo(() => {
-    const years = new Set<number>()
-    for (const town of mergedTowns) {
-      for (const y of town.years || []) years.add(y.year)
-    }
-    return Array.from(years).sort((a, b) => b - a)
-  }, [mergedTowns])
-
-  const yearScopedTowns = useMemo(() => {
-    if (yearFilter === 'all') return mergedTowns
-    return mergedTowns.map(town => {
-      const years = (town.years || []).filter(y => y.year === yearFilter)
-      return {
-        ...town,
-        hasPhotos: years.length > 0,
-        years,
-      }
-    })
-  }, [mergedTowns, yearFilter])
-
-  const visibleTowns = yearScopedTowns.filter(t => {
+  const visibleTowns = mergedTowns.filter(t => {
     if (filter === 'photos') return t.hasPhotos
     if (filter === 'no-photos') return !t.hasPhotos
     return true
@@ -91,6 +65,21 @@ export default function MapSearch({
       })
     }
 
+    const yearResults: SearchResult[] = []
+    for (const town of visibleTowns) {
+      for (const y of town.years || []) {
+        if (String(y.year).includes(q)) {
+          yearResults.push({
+            key: `year:${town.name}:${y.year}:${y.photographer}`,
+            type: 'year',
+            town,
+            year: y.year,
+            photographer: y.photographer,
+          })
+        }
+      }
+    }
+
     const photographerResults: SearchResult[] = []
     for (const town of visibleTowns) {
       for (const y of town.years || []) {
@@ -106,12 +95,15 @@ export default function MapSearch({
       }
     }
 
-    const allResults = [...townResults, ...photographerResults]
+    const allResults = [...townResults, ...yearResults, ...photographerResults]
     allResults.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'town' ? -1 : 1
+      if (a.type !== b.type) {
+        const rank = (t: SearchResult['type']) => (t === 'town' ? 0 : t === 'year' ? 1 : 2)
+        return rank(a.type) - rank(b.type)
+      }
       if (a.town.hasPhotos !== b.town.hasPhotos) return a.town.hasPhotos ? -1 : 1
       if (a.town.name !== b.town.name) return a.town.name.localeCompare(b.town.name)
-      if (a.type === 'photographer' && b.type === 'photographer') return b.year - a.year
+      if (a.type !== 'town' && b.type !== 'town') return b.year - a.year
       return 0
     })
     return allResults
@@ -160,7 +152,7 @@ export default function MapSearch({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search towns or photographers... ( / )"
+          placeholder="Search towns, years, photographers"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -179,25 +171,6 @@ export default function MapSearch({
             </svg>
           </button>
         )}
-      </div>
-
-      <div className="mt-1">
-        <select
-          value={yearFilter === 'all' ? 'all' : String(yearFilter)}
-          onChange={(e) => {
-            const value = e.target.value === 'all' ? 'all' : Number(e.target.value)
-            onYearFilterChange?.(value)
-            setShowResults(true)
-          }}
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 transition-colors"
-        >
-          <option value="all">All years</option>
-          {availableYears.map(year => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Results dropdown */}
@@ -239,10 +212,16 @@ export default function MapSearch({
                     result.town.hasPhotos ? 'bg-amber-400' : 'bg-zinc-600'
                   }`} />
                   <span className="text-zinc-800 dark:text-zinc-200">
-                    {result.type === 'town' ? result.town.name : `${result.photographer} (${result.year})`}
+                    {result.type === 'town'
+                      ? result.town.name
+                      : result.type === 'year'
+                        ? `${result.town.name} (${result.year})`
+                        : `${result.photographer} (${result.year})`}
                   </span>
                   {result.type === 'photographer' ? (
                     <span className="ml-auto text-xs text-zinc-500">{result.town.name}</span>
+                  ) : result.type === 'year' ? (
+                    <span className="ml-auto text-xs text-zinc-500">{result.photographer}</span>
                   ) : result.town.hasPhotos && result.town.years ? (
                     <span className="ml-auto text-xs text-zinc-500">
                       {result.town.years.length} {result.town.years.length === 1 ? 'gallery' : 'galleries'}
