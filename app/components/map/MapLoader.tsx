@@ -41,7 +41,7 @@ export default function MapLoader({ dbProjects = [] }: { dbProjects?: DbProject[
   return (
     <div className="relative h-full w-full">
       <InteractiveMap dbProjects={dbProjects} onMapReady={handleMapReady} theme={theme} />
-      <MapSearch onTownFocus={handleTownFocus} />
+      <MapSearch onTownFocus={handleTownFocus} dbProjects={dbProjects} />
     </div>
   )
 }
