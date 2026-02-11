@@ -3,10 +3,10 @@ import type { Dirent } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
-import { head, put } from '@vercel/blob'
 import { Role } from '@prisma/client'
 import { prisma } from '../lib/db'
 import { allTowns } from '../lib/towns'
+import { assertR2Configured, getR2PublicUrl, r2ObjectExists, uploadBufferToR2 } from '../lib/storage/r2'
 
 const TOWNS_ROOT = process.env.LOCAL_TOWNS_ROOT || path.join(process.cwd(), '..', 'towns')
 const PLACEHOLDER_EMAIL = process.env.LEGACY_PLACEHOLDER_EMAIL || 'unclaimed@smalltown.gallery'
@@ -117,25 +117,25 @@ async function uploadPhoto(townName: string, year: number, filePath: string, fil
   const townSeg = safeSegment(townName)
   const blobPath = `legacy/${townSeg}/${year}/${filename}`
 
-  try {
-    const existing = await head(blobPath)
+  if (await r2ObjectExists(blobPath)) {
     return {
-      url: existing.url,
-      pathname: existing.pathname,
+      url: getR2PublicUrl(blobPath),
+      pathname: blobPath,
       reused: true,
     }
-  } catch {
-    const file = await fs.readFile(filePath)
-    const uploaded = await put(blobPath, file, {
-      access: 'public',
-      addRandomSuffix: false,
-      contentType: 'image/jpeg',
-    })
-    return {
-      url: uploaded.url,
-      pathname: uploaded.pathname,
-      reused: false,
-    }
+  }
+
+  const file = await fs.readFile(filePath)
+  const uploaded = await uploadBufferToR2({
+    pathname: blobPath,
+    body: file,
+    contentType: 'image/jpeg',
+  })
+
+  return {
+    url: uploaded.url,
+    pathname: uploaded.pathname,
+    reused: false,
   }
 }
 
@@ -237,9 +237,7 @@ async function importTownYear(entry: TownYear, placeholderUserId: string, counte
 }
 
 async function main() {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error('Missing BLOB_READ_WRITE_TOKEN')
-  }
+  assertR2Configured()
   if (!process.env.POSTGRES_PRISMA_URL && !process.env.DATABASE_URL) {
     throw new Error('Missing POSTGRES_PRISMA_URL/DATABASE_URL')
   }

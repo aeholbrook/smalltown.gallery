@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, X, Loader2 } from 'lucide-react'
-import { upload } from '@vercel/blob/client'
 import { formatBytes } from '@/lib/utils'
 
 function getImageDimensions(
@@ -67,20 +66,28 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
         const dims = await getImageDimensions(file)
 
         setProgress(`Uploading ${file.name}...`)
-        const blob = await upload(`projects/${projectId}/${file.name}`, file, {
-          access: 'public',
-          contentType: file.type || undefined,
-          handleUploadUrl: '/api/upload/blob',
-          clientPayload: JSON.stringify({ projectId }),
+        const form = new FormData()
+        form.append('projectId', projectId)
+        form.append('width', String(dims.width))
+        form.append('height', String(dims.height))
+        form.append('file', file)
+
+        const uploadRes = await fetch('/api/upload/r2', {
+          method: 'POST',
+          body: form,
         })
+        const uploadData = await uploadRes.json()
+        if (!uploadRes.ok) {
+          throw new Error(uploadData.error || `Upload failed for ${file.name}`)
+        }
 
         uploaded.push({
-          filename: file.name,
-          blobUrl: blob.url,
-          pathname: blob.pathname,
-          size: file.size,
-          width: dims.width,
-          height: dims.height,
+          filename: uploadData.filename,
+          blobUrl: uploadData.blobUrl,
+          pathname: uploadData.pathname,
+          size: uploadData.size,
+          width: uploadData.width,
+          height: uploadData.height,
         })
       }
 
@@ -105,8 +112,7 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
         router.refresh()
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Upload failed. Please try again.'
+      const message = error instanceof Error ? error.message : 'Upload failed. Please try again.'
       setError(message)
     } finally {
       setUploading(false)
