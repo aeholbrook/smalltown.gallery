@@ -34,7 +34,7 @@ export default function PhotographerList({ dbProjects = [] }: { dbProjects?: DbP
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-sm text-zinc-400 hover:text-white transition-colors"
+        className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
       >
         Photographers
       </button>
@@ -42,17 +42,17 @@ export default function PhotographerList({ dbProjects = [] }: { dbProjects?: DbP
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60"
             onClick={() => setOpen(false)}
           />
-          <div className="relative w-full max-w-xl max-h-[70vh] overflow-y-auto bg-zinc-900 border border-zinc-700 rounded-t-xl sm:rounded-xl p-6 sm:p-8 animate-slide-up">
+          <div className="relative w-full max-w-xl max-h-[70vh] overflow-y-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-t-xl sm:rounded-xl p-6 sm:p-8 animate-slide-up transition-colors">
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+              className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
-            <h2 className="text-xl font-semibold text-white mb-4">
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">
               Photographers
             </h2>
             <div className="space-y-2">
@@ -61,15 +61,15 @@ export default function PhotographerList({ dbProjects = [] }: { dbProjects?: DbP
                   key={photographer.name}
                   href={`/photographers/${slugify(photographer.name)}`}
                   onClick={() => setOpen(false)}
-                  className="block rounded px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                  className="block rounded px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
                   <div className="flex items-baseline gap-2">
                     <span className="font-medium">{photographer.name}</span>
-                    <span className="ml-auto text-xs text-zinc-500">
+                    <span className="ml-auto text-xs text-zinc-500 dark:text-zinc-500">
                       {photographer.projects.length} {photographer.projects.length === 1 ? 'project' : 'projects'}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs text-zinc-500 truncate">
+                  <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-500 truncate">
                     {photographer.projects.slice(0, 3).map(p => `${p.townName} ${p.year}`).join(' · ')}
                     {photographer.projects.length > 3 ? ' · ...' : ''}
                   </div>
