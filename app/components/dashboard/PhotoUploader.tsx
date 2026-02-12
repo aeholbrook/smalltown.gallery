@@ -23,6 +23,20 @@ function getImageDimensions(
   })
 }
 
+async function readErrorMessage(response: Response, fallback: string) {
+  const bodyText = await response.text()
+  if (!bodyText) return fallback
+
+  try {
+    const parsed = JSON.parse(bodyText) as { error?: string }
+    if (parsed?.error) return parsed.error
+  } catch {
+    // Non-JSON response body (e.g. proxy/body-size error page).
+  }
+
+  return bodyText
+}
+
 export function PhotoUploader({ projectId }: { projectId: string }) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -80,9 +94,20 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
               size: file.size,
             }),
           })
-          const signData = await signRes.json()
           if (!signRes.ok) {
-            throw new Error(signData.error || `Failed to prepare upload for ${file.name}`)
+            const message = await readErrorMessage(
+              signRes,
+              `Failed to prepare upload for ${file.name}`
+            )
+            throw new Error(message)
+          }
+          const signData = (await signRes.json()) as {
+            uploadUrl: string
+            method?: string
+            headers?: Record<string, string>
+            filename: string
+            blobUrl: string
+            pathname: string
           }
 
           setProgress(`Uploading ${file.name}...`)
@@ -115,14 +140,22 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
             method: 'POST',
             body: form,
           })
-          const uploadData = await uploadRes.json()
           if (!uploadRes.ok) {
+            const message = await readErrorMessage(uploadRes, `Upload failed for ${file.name}`)
             if (file.size > 5 * 1024 * 1024) {
               throw new Error(
                 'Large upload failed. Enable R2 CORS for direct uploads (PUT from your app domain), then retry.'
               )
             }
-            throw new Error(uploadData.error || `Upload failed for ${file.name}`)
+            throw new Error(message)
+          }
+          const uploadData = (await uploadRes.json()) as {
+            filename: string
+            blobUrl: string
+            pathname: string
+            size: number
+            width: number
+            height: number
           }
 
           uploaded.push({
