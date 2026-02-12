@@ -1,51 +1,39 @@
-# Small Town Gallery - Rebuild
+# Small Town Gallery
 
-A modern photo gallery platform for documenting small towns in Southern Illinois, part of Professor Dan Overturf's Small Town Documentary class at Southern Illinois University.
+Small Town Gallery is the current web app for the Small Town Documentary archive at SIU.
 
-## Tech Stack
+## Current Status
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: Vercel Postgres (PostgreSQL)
-- **ORM**: Prisma
-- **Authentication**: NextAuth.js v5
-- **File Storage**: Vercel Blob Storage
-- **Maps**: Mapbox GL JS
-- **Gallery**: PhotoSwipe v5
-- **Deployment**: Vercel
+- Production app is active on `master`.
+- Core flows are live: public map, town/year galleries, photographer pages, dashboard, admin.
+- Storage is on Cloudflare R2 (not Vercel Blob).
+- Town landing pages now include Wikipedia summary content when available.
+- Map popups include a direct `View Town Overview` action.
+- Large photo uploads are handled with direct browser-to-R2 upload + client-side resize fallback.
 
-## Architecture
+## Stack
 
-### Database Models
-- **User**: Photographers and admins with role-based access
-- **Town**: Geographic locations with coordinates
-- **Project**: A photographer's work in a specific town/year
-- **Photo**: Individual images with metadata
+- Next.js 16 + App Router
+- TypeScript
+- Prisma + PostgreSQL (local or Neon)
+- NextAuth v5
+- Cloudflare R2 (S3 API)
+- Mapbox GL + PhotoSwipe
 
-### User Roles
-- **PENDING**: Awaiting admin approval
-- **PHOTOGRAPHER**: Can upload to own projects
-- **ADMIN**: Full management access
-
-## Getting Started
+## Local Run
 
 ```bash
-# Install dependencies
 npm install
-
-# Copy environment template
-cp .env.example .env.local
-
-# Generate Prisma client
-npx prisma generate
-
-# Run development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+App runs at `http://localhost:3000`.
 
-## Deployment
+For full environment setup, see `GETTING_STARTED.md`.
 
-Deploy to Vercel - it will auto-detect Next.js configuration.
+## Docs
+
+- `GETTING_STARTED.md`: local setup and day-to-day commands
+- `ARCHITECTURE.md`: routing, data model, and request flows
+- `MARKDOWN_FEATURES.md`: markdown usage guidelines for editors/photographers
+- `README.nextjs.md`: upstream Next.js starter reference (kept for baseline)

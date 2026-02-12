@@ -1,201 +1,95 @@
-# Getting Started - Small Town Gallery
+# Getting Started
 
-Welcome! This guide will help you get the development environment running.
+This guide is for running and working on the current app in `app/`.
 
-## Current Status
+## Current Status Snapshot
 
-✅ **Completed:**
-- Next.js 15 project initialized with TypeScript and Tailwind
-- Prisma database schema designed (User, Town, Project, Photo models)
-- Markdown support infrastructure (components + utilities)
-- Project structure and configuration
-- NPM dependencies installed
+As of February 2026:
 
-❌ **Not Yet Built:**
-- Database connection (needs environment variables)
-- Authentication system (NextAuth.js configured but not implemented)
-- UI components (homepage, galleries, upload, etc.)
-- Map integration (Mapbox)
-- API routes
+- Next.js app is the primary system.
+- Legacy filesystem/PHP assets were moved out of this repo root to `/opt/smalltown.gallery-legacy`.
+- Photo uploads use Cloudflare R2.
+- Town pages are under `/towns/[town]` and `/towns/[town]/[year]`.
+- Wikipedia enrichment is wired into town landing pages.
 
-## Quick Start
+## Prerequisites
 
-### 1. Install Dependencies (already done)
+- Node.js 20+
+- npm
+- PostgreSQL (local) or Neon connection string
+
+## 1. Install
+
 ```bash
 npm install
 ```
 
-### 2. Set Up Environment Variables
+## 2. Environment
 
-Create `.env.local` in the `app/` directory:
+Create `.env.local` (or use `.env` in local dev):
 
 ```bash
 cp .env.example .env.local
 ```
 
-Then edit `.env.local` and add:
+Minimum variables you need:
 
 ```env
-# Database (will set up later with Vercel)
-POSTGRES_URL="postgresql://..."
-POSTGRES_PRISMA_URL="postgresql://..."
-POSTGRES_URL_NON_POOLING="postgresql://..."
+# Database
+DATABASE_URL="postgresql://..."
 
-# NextAuth (generate with: openssl rand -base64 32)
-NEXTAUTH_SECRET="your-secret-here"
-NEXTAUTH_URL="http://localhost:3000"
+# Auth
+NEXTAUTH_SECRET="..."
 
-# Vercel Blob (will get from Vercel dashboard)
-BLOB_READ_WRITE_TOKEN=""
+# Map
+NEXT_PUBLIC_MAPBOX_TOKEN="..."
 
-# Mapbox (get free token at https://mapbox.com)
-NEXT_PUBLIC_MAPBOX_TOKEN=""
+# R2
+R2_ACCOUNT_ID="..."
+R2_BUCKET="..."
+R2_ENDPOINT="https://<account>.r2.cloudflarestorage.com"
+R2_ACCESS_KEY_ID="..."
+R2_SECRET_ACCESS_KEY="..."
+R2_PUBLIC_BASE_URL="https://photos.smalltown.gallery"
 ```
 
-### 3. Generate Prisma Client
+## 3. Prisma Client
 
 ```bash
 npx prisma generate
 ```
 
-### 4. Run Development Server
+## 4. Start Dev Server
 
 ```bash
 npm run dev
 ```
 
-Visit http://localhost:3000 (or use PORT=3001 for different port)
-
-## Project Structure
-
-```
-app/
-├── app/                    # Next.js App Router pages
-│   ├── page.tsx           # Homepage (default Next.js starter)
-│   ├── layout.tsx         # Root layout
-│   └── globals.css        # Global styles
-├── components/
-│   └── ui/                # Reusable components
-│       ├── markdown-editor.tsx
-│       └── markdown-renderer.tsx
-├── lib/
-│   ├── db.ts              # Prisma client
-│   ├── utils.ts           # Helper functions
-│   ├── markdown.ts        # Markdown utilities
-│   └── auth.config.ts     # NextAuth config
-├── prisma/
-│   └── schema.prisma      # Database schema
-├── public/                # Static files
-└── README.md              # Main documentation
-```
-
-## Database Schema Overview
-
-### Models:
-- **User**: Photographer accounts with roles (PENDING, PHOTOGRAPHER, ADMIN)
-- **Town**: Geographic locations with coordinates and markdown descriptions
-- **Project**: Links User + Town + Year (unique per combination)
-- **Photo**: Images with markdown captions, EXIF data, Blob storage URLs
-
-### Key Relationships:
-- One Town → Many Projects
-- One User → Many Projects
-- One Project → Many Photos
-
-## Next Steps to Build
-
-### Phase 1: Authentication
-1. Complete NextAuth.js setup
-2. Create login/register pages
-3. Build user approval flow for admins
-
-### Phase 2: Core UI
-1. Homepage with map
-2. Town gallery pages
-3. Photographer dashboard
-4. Admin panel
-
-### Phase 3: Upload System
-1. Drag-and-drop photo upload
-2. Direct-to-Blob upload flow
-3. EXIF extraction
-4. Markdown caption editor
-
-### Phase 4: Gallery
-1. PhotoSwipe lightbox
-2. Year filtering
-3. Multi-photographer views
-4. Responsive grid
+Open `http://localhost:3000`.
 
 ## Useful Commands
 
 ```bash
-# Development
-npm run dev              # Start dev server
-npm run build            # Build for production
-npm run start            # Start production server
-
-# Database
-npx prisma generate      # Generate Prisma client
-npx prisma migrate dev   # Create migration
-npx prisma studio        # Open Prisma GUI
-npx prisma db push       # Push schema changes (dev only)
-
-# Code Quality
-npm run lint             # Run ESLint
+npm run dev
+npm run build
+npm run lint
+npx prisma studio
 ```
 
-## VSCode Extensions Recommended
+## Database Notes
 
-- **Prisma** (prisma.prisma)
-- **Tailwind CSS IntelliSense** (bradlc.vscode-tailwindcss)
-- **ESLint** (dbaeumer.vscode-eslint)
-- **Prettier** (esbenp.prettier-vscode)
+- Local and remote data can diverge quickly during imports/cleanup.
+- If you sync local from Neon, verify counts after clone (users/towns/projects/photos).
+- Canonical source for production is Neon + `master` deploys.
+
+## Upload Notes
+
+- Direct browser `PUT` to R2 is the preferred path.
+- Ensure R2 bucket CORS allows your site origin and `PUT`.
+- Server upload fallback can still hit platform request body limits.
 
 ## Troubleshooting
 
-### Port already in use
-```bash
-# Use a different port
-PORT=3001 npm run dev
-```
-
-### Prisma errors
-```bash
-# Regenerate client
-npx prisma generate
-
-# Reset database (dev only!)
-npx prisma migrate reset
-```
-
-### Module not found
-```bash
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
-```
-
-## Documentation
-
-- **README.md** - Project overview and setup
-- **ARCHITECTURE.md** - Technical architecture details
-- **MARKDOWN_FEATURES.md** - Guide for photographers using markdown
-- **GETTING_STARTED.md** - This file!
-
-## Git Branch
-
-You're currently on the `rebuild` branch. The old PHP version is preserved in:
-- `/old-php-version/` - Original PHP application
-- `/towns/` - Original photo data (to be migrated)
-
-## Need Help?
-
-Check the docs above or review:
-- Next.js docs: https://nextjs.org/docs
-- Prisma docs: https://www.prisma.io/docs
-- Tailwind docs: https://tailwindcss.com/docs
-
----
-
-Happy coding! 🎨📸
+- `Request Entity Too Large`: direct R2 path failed and fallback path hit body limit. Check R2 CORS.
+- Missing town page content: verify published project rows and slug matching.
+- Local page differs from prod: confirm which `DATABASE_URL` your process is using.

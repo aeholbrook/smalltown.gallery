@@ -1,5 +1,3 @@
-.claude/
-
 # Flickr import — keep scripts, exclude downloaded photos and metadata
 flickr-import/**/
 !flickr-import/*.py
