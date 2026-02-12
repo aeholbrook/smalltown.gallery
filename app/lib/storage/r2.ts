@@ -4,6 +4,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
 } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
 const R2_BUCKET = process.env.R2_BUCKET
@@ -91,6 +92,32 @@ export async function uploadBufferToR2(params: {
   return {
     pathname,
     url: getR2PublicUrl(pathname),
+  }
+}
+
+export async function getR2SignedUploadUrl(params: {
+  pathname: string
+  contentType: string
+  cacheControl?: string
+  expiresIn?: number
+}) {
+  const c = getClient()
+  const pathname = trimSlashes(params.pathname)
+  const command = new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: pathname,
+    ContentType: params.contentType,
+    CacheControl: params.cacheControl,
+  })
+
+  const signedUrl = await getSignedUrl(c, command, {
+    expiresIn: params.expiresIn ?? 60 * 5,
+  })
+
+  return {
+    pathname,
+    url: getR2PublicUrl(pathname),
+    signedUrl,
   }
 }
 
