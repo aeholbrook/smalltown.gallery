@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { formatBytes } from '@/lib/utils'
 
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const MAX_FALLBACK_BYTES = 4.5 * 1024 * 1024
+const MAX_DIMENSION = 6000
+
 function getImageDimensions(
   file: File
 ): Promise<{ width: number; height: number }> {
@@ -37,6 +41,93 @@ async function readErrorMessage(response: Response, fallback: string) {
   return bodyText
 }
 
+function inferOutputType(inputType: string) {
+  if (inputType === 'image/jpeg' || inputType === 'image/webp') return inputType
+  return 'image/jpeg'
+}
+
+function renameForType(name: string, type: string) {
+  const base = name.replace(/\.[^.]+$/, '')
+  if (type === 'image/webp') return `${base}.webp`
+  if (type === 'image/png') return `${base}.png`
+  return `${base}.jpg`
+}
+
+function blobFromCanvas(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality?: number
+): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
+}
+
+async function resizeImageForLimit(
+  file: File,
+  maxBytes: number
+): Promise<{ file: File; width: number; height: number; changed: boolean }> {
+  const originalDims = await getImageDimensions(file)
+  if (!originalDims.width || !originalDims.height) {
+    return { file, width: 0, height: 0, changed: false }
+  }
+
+  const outputType = inferOutputType(file.type)
+  const qualitySteps = outputType === 'image/webp' ? [0.9, 0.82, 0.74, 0.66, 0.58] : [0.9, 0.82, 0.74, 0.66, 0.58, 0.5]
+
+  const imgUrl = URL.createObjectURL(file)
+  const img = new Image()
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('Failed to read image'))
+    img.src = imgUrl
+  })
+
+  let width = originalDims.width
+  let height = originalDims.height
+  if (Math.max(width, height) > MAX_DIMENSION) {
+    const scale = MAX_DIMENSION / Math.max(width, height)
+    width = Math.max(1, Math.round(width * scale))
+    height = Math.max(1, Math.round(height * scale))
+  }
+
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    URL.revokeObjectURL(imgUrl)
+    return { file, width: originalDims.width, height: originalDims.height, changed: false }
+  }
+
+  let candidateFile = file
+  let changed = false
+
+  for (let downscalePass = 0; downscalePass < 6; downscalePass++) {
+    canvas.width = width
+    canvas.height = height
+    ctx.clearRect(0, 0, width, height)
+    ctx.drawImage(img, 0, 0, width, height)
+
+    for (const quality of qualitySteps) {
+      const blob = await blobFromCanvas(canvas, outputType, quality)
+      if (!blob) continue
+
+      const renamed = renameForType(file.name, outputType)
+      const nextFile = new File([blob], renamed, { type: outputType, lastModified: Date.now() })
+      candidateFile = nextFile
+      changed = changed || nextFile.size !== file.size || nextFile.type !== file.type || width !== originalDims.width || height !== originalDims.height
+
+      if (nextFile.size <= maxBytes) {
+        URL.revokeObjectURL(imgUrl)
+        return { file: nextFile, width, height, changed }
+      }
+    }
+
+    width = Math.max(1, Math.round(width * 0.85))
+    height = Math.max(1, Math.round(height * 0.85))
+  }
+
+  URL.revokeObjectURL(imgUrl)
+  return { file: candidateFile, width, height, changed }
+}
+
 export function PhotoUploader({ projectId }: { projectId: string }) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -49,8 +140,7 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const valid = Array.from(newFiles).filter(
       (f) =>
-        (f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/webp') &&
-        f.size <= 20 * 1024 * 1024
+        (f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/webp')
     )
     setFiles((prev) => [...prev, ...valid])
     setError(null)
@@ -77,11 +167,19 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
 
       for (const file of files) {
         setProgress(`Reading ${file.name}...`)
-        const dims = await getImageDimensions(file)
+        let uploadFile = file
+        let dims = await getImageDimensions(file)
+
+        if (uploadFile.size > MAX_UPLOAD_BYTES) {
+          setProgress(`Resizing ${file.name} for upload...`)
+          const resized = await resizeImageForLimit(uploadFile, MAX_UPLOAD_BYTES)
+          uploadFile = resized.file
+          dims = { width: resized.width, height: resized.height }
+        }
 
         try {
           // Sign, then upload directly to R2 from the browser to bypass server body limits.
-          setProgress(`Preparing upload for ${file.name}...`)
+          setProgress(`Preparing upload for ${uploadFile.name}...`)
           const signRes = await fetch('/api/upload/r2/sign', {
             method: 'POST',
             headers: {
@@ -89,9 +187,9 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
             },
             body: JSON.stringify({
               projectId,
-              filename: file.name,
-              contentType: file.type,
-              size: file.size,
+              filename: uploadFile.name,
+              contentType: uploadFile.type,
+              size: uploadFile.size,
             }),
           })
           if (!signRes.ok) {
@@ -110,39 +208,46 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
             pathname: string
           }
 
-          setProgress(`Uploading ${file.name}...`)
+          setProgress(`Uploading ${uploadFile.name}...`)
           const putRes = await fetch(signData.uploadUrl, {
             method: signData.method || 'PUT',
-            headers: signData.headers || { 'Content-Type': file.type },
-            body: file,
+            headers: signData.headers || { 'Content-Type': uploadFile.type },
+            body: uploadFile,
           })
           if (!putRes.ok) {
-            throw new Error(`Upload failed for ${file.name}`)
+            throw new Error(`Upload failed for ${uploadFile.name}`)
           }
 
           uploaded.push({
             filename: signData.filename,
             blobUrl: signData.blobUrl,
             pathname: signData.pathname,
-            size: file.size,
+            size: uploadFile.size,
             width: dims.width,
             height: dims.height,
           })
         } catch {
           // Fallback path for environments without direct upload/CORS.
+          if (uploadFile.size > MAX_FALLBACK_BYTES) {
+            setProgress(`Resizing ${uploadFile.name} for fallback upload...`)
+            const fallbackSized = await resizeImageForLimit(uploadFile, MAX_FALLBACK_BYTES)
+            uploadFile = fallbackSized.file
+            dims = { width: fallbackSized.width, height: fallbackSized.height }
+          }
+
           const form = new FormData()
           form.append('projectId', projectId)
           form.append('width', String(dims.width))
           form.append('height', String(dims.height))
-          form.append('file', file)
+          form.append('file', uploadFile)
 
           const uploadRes = await fetch('/api/upload/r2', {
             method: 'POST',
             body: form,
           })
           if (!uploadRes.ok) {
-            const message = await readErrorMessage(uploadRes, `Upload failed for ${file.name}`)
-            if (file.size > 5 * 1024 * 1024) {
+            const message = await readErrorMessage(uploadRes, `Upload failed for ${uploadFile.name}`)
+            if (uploadFile.size > 5 * 1024 * 1024) {
               throw new Error(
                 'Large upload failed. Enable R2 CORS for direct uploads (PUT from your app domain), then retry.'
               )
@@ -162,9 +267,9 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
             filename: uploadData.filename,
             blobUrl: uploadData.blobUrl,
             pathname: uploadData.pathname,
-            size: uploadData.size,
-            width: uploadData.width,
-            height: uploadData.height,
+            size: uploadFile.size || uploadData.size,
+            width: dims.width || uploadData.width,
+            height: dims.height || uploadData.height,
           })
         }
       }
@@ -236,7 +341,7 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
           Drag and drop photos here, or click to browse
         </p>
         <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-          JPEG, PNG, or WebP, max 20MB each
+          JPEG, PNG, or WebP. Oversized files are auto-resized before upload.
         </p>
         <input
           ref={fileInputRef}
