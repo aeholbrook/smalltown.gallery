@@ -65,30 +65,75 @@ export function PhotoUploader({ projectId }: { projectId: string }) {
         setProgress(`Reading ${file.name}...`)
         const dims = await getImageDimensions(file)
 
-        setProgress(`Uploading ${file.name}...`)
-        const form = new FormData()
-        form.append('projectId', projectId)
-        form.append('width', String(dims.width))
-        form.append('height', String(dims.height))
-        form.append('file', file)
+        try {
+          // Sign, then upload directly to R2 from the browser to bypass server body limits.
+          setProgress(`Preparing upload for ${file.name}...`)
+          const signRes = await fetch('/api/upload/r2/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              projectId,
+              filename: file.name,
+              contentType: file.type,
+              size: file.size,
+            }),
+          })
+          const signData = await signRes.json()
+          if (!signRes.ok) {
+            throw new Error(signData.error || `Failed to prepare upload for ${file.name}`)
+          }
 
-        const uploadRes = await fetch('/api/upload/r2', {
-          method: 'POST',
-          body: form,
-        })
-        const uploadData = await uploadRes.json()
-        if (!uploadRes.ok) {
-          throw new Error(uploadData.error || `Upload failed for ${file.name}`)
+          setProgress(`Uploading ${file.name}...`)
+          const putRes = await fetch(signData.uploadUrl, {
+            method: signData.method || 'PUT',
+            headers: signData.headers || { 'Content-Type': file.type },
+            body: file,
+          })
+          if (!putRes.ok) {
+            throw new Error(`Upload failed for ${file.name}`)
+          }
+
+          uploaded.push({
+            filename: signData.filename,
+            blobUrl: signData.blobUrl,
+            pathname: signData.pathname,
+            size: file.size,
+            width: dims.width,
+            height: dims.height,
+          })
+        } catch {
+          // Fallback path for environments without direct upload/CORS.
+          const form = new FormData()
+          form.append('projectId', projectId)
+          form.append('width', String(dims.width))
+          form.append('height', String(dims.height))
+          form.append('file', file)
+
+          const uploadRes = await fetch('/api/upload/r2', {
+            method: 'POST',
+            body: form,
+          })
+          const uploadData = await uploadRes.json()
+          if (!uploadRes.ok) {
+            if (file.size > 5 * 1024 * 1024) {
+              throw new Error(
+                'Large upload failed. Enable R2 CORS for direct uploads (PUT from your app domain), then retry.'
+              )
+            }
+            throw new Error(uploadData.error || `Upload failed for ${file.name}`)
+          }
+
+          uploaded.push({
+            filename: uploadData.filename,
+            blobUrl: uploadData.blobUrl,
+            pathname: uploadData.pathname,
+            size: uploadData.size,
+            width: uploadData.width,
+            height: uploadData.height,
+          })
         }
-
-        uploaded.push({
-          filename: uploadData.filename,
-          blobUrl: uploadData.blobUrl,
-          pathname: uploadData.pathname,
-          size: uploadData.size,
-          width: uploadData.width,
-          height: uploadData.height,
-        })
       }
 
       setProgress(`Saving ${uploaded.length} photo${uploaded.length > 1 ? 's' : ''}...`)
