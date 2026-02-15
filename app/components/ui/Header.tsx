@@ -16,7 +16,7 @@ export default function Header() {
         <Link href="/" className="group">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <img
-              src="https://1000logos.net/wp-content/uploads/2020/01/Southern-Illinois-Salukis-Logo-1964.png"
+              src="/salukis-logo.png"
               alt="Southern Illinois Salukis logo"
               className="h-12 w-12 object-contain grayscale sm:h-24 sm:w-24"
             />
