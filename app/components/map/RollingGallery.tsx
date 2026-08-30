@@ -18,7 +18,7 @@ export default function RollingGallery({ previews, direction = 'up' }: RollingGa
     const el = scrollRef.current
     if (!el || previews.length === 0) return
 
-    const speed = 0.5 // pixels per frame
+    const speed = 0.25 // pixels per frame
 
     function animate() {
       if (!el || pausedRef.current) {
