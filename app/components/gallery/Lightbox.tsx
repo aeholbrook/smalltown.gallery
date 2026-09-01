@@ -33,10 +33,10 @@ export function Lightbox({ galleryRef }: LightboxProps) {
             const currSlideElement = pswp.currSlide?.data.element as HTMLElement | undefined
             const caption = currSlideElement?.getAttribute('data-pswp-caption')?.trim() || ''
             if (caption) {
-              el.innerHTML = caption
+              el.textContent = caption
               el.classList.remove('pswp__custom-caption--empty')
             } else {
-              el.innerHTML = ''
+              el.textContent = ''
               el.classList.add('pswp__custom-caption--empty')
             }
           }

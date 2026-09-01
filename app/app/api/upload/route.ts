@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { getR2PublicUrl } from '@/lib/storage/r2'
 
 interface UploadedPhotoInput {
   filename: string
-  blobUrl: string
   pathname: string
   size: number
   width: number
@@ -35,34 +35,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
-  const maxOrder = await prisma.photo.aggregate({
-    where: { projectId },
-    _max: { order: true },
-  })
-  let nextOrder = (maxOrder._max.order ?? -1) + 1
-
-  const created = []
+  // Pathnames must stay inside this project's prefix — the sign route only issues
+  // keys there, and deletePhoto later deletes photo.pathname from R2 verbatim.
+  const prefix = `projects/${projectId}/`
   for (const photo of photos) {
-    const record = await prisma.photo.create({
-      data: {
-        projectId,
-        userId: project.userId,
-        filename: photo.filename,
-        blobUrl: photo.blobUrl,
-        pathname: photo.pathname,
-        width: photo.width || 0,
-        height: photo.height || 0,
-        size: photo.size || 0,
-        order: nextOrder++,
-      },
-    })
-    created.push(record)
+    const pathname = photo.pathname || ''
+    if (!pathname.startsWith(prefix) || pathname.includes('..')) {
+      return NextResponse.json({ error: 'Invalid photo pathname' }, { status: 400 })
+    }
   }
 
-  const count = await prisma.photo.count({ where: { projectId } })
-  await prisma.project.update({
-    where: { id: projectId },
-    data: { photoCount: count },
+  const { created, count } = await prisma.$transaction(async (tx) => {
+    const maxOrder = await tx.photo.aggregate({
+      where: { projectId },
+      _max: { order: true },
+    })
+    let nextOrder = (maxOrder._max.order ?? -1) + 1
+
+    const created = []
+    for (const photo of photos) {
+      const record = await tx.photo.create({
+        data: {
+          projectId,
+          userId: project.userId,
+          filename: photo.filename,
+          blobUrl: getR2PublicUrl(photo.pathname),
+          pathname: photo.pathname,
+          width: photo.width || 0,
+          height: photo.height || 0,
+          size: photo.size || 0,
+          order: nextOrder++,
+        },
+      })
+      created.push(record)
+    }
+
+    const count = await tx.photo.count({ where: { projectId } })
+    await tx.project.update({
+      where: { id: projectId },
+      data: { photoCount: count },
+    })
+
+    return { created, count }
   })
 
   return NextResponse.json({ photos: created, count })
