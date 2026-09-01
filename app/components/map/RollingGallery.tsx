@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import type { GalleryPreview } from '@/lib/gallery'
 
@@ -72,11 +73,13 @@ export default function RollingGallery({ previews, direction = 'up' }: RollingGa
               className="group block flex-shrink-0"
             >
               <div className="overflow-hidden rounded-lg">
-                <img
+                <Image
                   src={preview.photo.src}
                   alt={`${preview.townName} — ${preview.photographer}`}
+                  width={preview.photo.width || 400}
+                  height={preview.photo.height || 300}
+                  sizes="256px"
                   className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110"
-                  loading="lazy"
                 />
               </div>
               <div className="mt-1.5 px-0.5" style={{ fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif' }}>

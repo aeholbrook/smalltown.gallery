@@ -35,7 +35,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        <link rel="preload" href="https://api.mapbox.com/mapbox-gl-js/v3.18.1/mapbox-gl.css" as="style" />
         <link rel="preconnect" href="https://api.mapbox.com" />
         <link rel="preconnect" href="https://tiles.mapbox.com" />
         <link rel="preconnect" href="https://events.mapbox.com" />

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Globe, MapPin } from 'lucide-react'
@@ -128,9 +129,12 @@ export default async function PhotographerPage({ params }: PageProps) {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="h-28 w-28 overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
               {photographer.profilePhotoUrl ? (
-                <img
+                <Image
                   src={photographer.profilePhotoUrl}
                   alt={photographer.name}
+                  width={112}
+                  height={112}
+                  sizes="112px"
                   className="h-full w-full object-cover"
                 />
               ) : (
