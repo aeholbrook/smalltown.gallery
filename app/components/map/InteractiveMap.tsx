@@ -368,7 +368,6 @@ export default function InteractiveMap({
   // mapLoaded is a dependency so a theme toggle made while the map was still
   // loading is applied once loading finishes (prevThemeRef only advances when
   // the style is actually swapped).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme, mergedTowns, mapLoaded])
 
   return (

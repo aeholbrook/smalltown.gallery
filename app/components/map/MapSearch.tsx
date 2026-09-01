@@ -164,11 +164,6 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
     }
   }, [onTownFocus, router])
 
-  // Reset keyboard highlight when the result set changes
-  useEffect(() => {
-    setActiveIndex(-1)
-  }, [q, filter, showResults])
-
   // Keep the highlighted option scrolled into view
   useEffect(() => {
     if (activeIndex < 0) return
@@ -225,6 +220,7 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
           onChange={(e) => {
             setQuery(e.target.value)
             setShowResults(true)
+            setActiveIndex(-1)
           }}
           onFocus={() => setShowResults(true)}
           onKeyDown={(e) => {
@@ -268,7 +264,7 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
             ] as const).map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setFilter(key)}
+                onClick={() => { setFilter(key); setActiveIndex(-1) }}
                 className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                   filter === key
                     ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'

@@ -10,6 +10,12 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Same fallback chain as lib/db.ts so `prisma migrate` works on
+    // Vercel-Postgres-style environments that only set POSTGRES_* vars
+    url:
+      process.env["DATABASE_URL"] ||
+      process.env["POSTGRES_URL"] ||
+      process.env["POSTGRES_PRISMA_URL"] ||
+      process.env["POSTGRES_URL_NON_POOLING"],
   },
 });
