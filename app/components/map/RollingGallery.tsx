@@ -27,16 +27,27 @@ export default function RollingGallery({ previews, direction = 'up' }: RollingGa
         return
       }
 
+      // A seamless loop needs the scroll range to cover one full copy of the
+      // list (scrollTop can only reach scrollHeight - clientHeight). With too
+      // few photos the old reset point was unreachable and the reel froze at
+      // the bottom — in that case leave the content static.
+      const halfHeight = el.scrollHeight / 2
+      const canLoop = el.scrollHeight - el.clientHeight >= halfHeight
+      if (!canLoop) {
+        animationRef.current = requestAnimationFrame(animate)
+        return
+      }
+
       if (direction === 'up') {
         el.scrollTop += speed
         // Reset when we've scrolled through the first set (seamless loop)
-        if (el.scrollTop >= el.scrollHeight / 2) {
+        if (el.scrollTop >= halfHeight) {
           el.scrollTop = 0
         }
       } else {
         el.scrollTop -= speed
         if (el.scrollTop <= 0) {
-          el.scrollTop = el.scrollHeight / 2
+          el.scrollTop = halfHeight
         }
       }
 

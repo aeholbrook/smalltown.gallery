@@ -266,19 +266,26 @@ export async function claimPlaceholderProject(
     return { error: 'This project is not a placeholder.' }
   }
 
-  await prisma.$transaction([
-    prisma.project.update({
-      where: { id: project.id },
-      data: {
-        userId: targetUser.id,
-        ...(publishOnClaim ? { published: true } : {}),
-      },
-    }),
-    prisma.photo.updateMany({
-      where: { projectId: project.id },
-      data: { userId: targetUser.id },
-    }),
-  ])
+  try {
+    await prisma.$transaction([
+      prisma.project.update({
+        where: { id: project.id },
+        data: {
+          userId: targetUser.id,
+          ...(publishOnClaim ? { published: true } : {}),
+        },
+      }),
+      prisma.photo.updateMany({
+        where: { projectId: project.id },
+        data: { userId: targetUser.id },
+      }),
+    ])
+  } catch (error) {
+    if ((error as { code?: string })?.code === 'P2002') {
+      return { error: `${targetUser.name} already has a project for this town and year.` }
+    }
+    throw error
+  }
 
   revalidatePath('/admin/placeholders')
   revalidatePath('/admin/projects')
@@ -444,6 +451,7 @@ export async function bulkClaimGalleries(
   if (galleries.length === 0) return { error: 'No galleries selected.' }
 
   let claimed = 0
+  const failed: string[] = []
 
   for (const { townName, year } of galleries) {
     const town = await prisma.town.findUnique({ where: { name: townName } })
@@ -456,20 +464,29 @@ export async function bulkClaimGalleries(
     if (!project) continue
     if (project.user.role !== 'PENDING') continue
 
-    await prisma.$transaction([
-      prisma.project.update({
-        where: { id: project.id },
-        data: {
-          userId: targetUser.id,
-          ...(publishOnClaim ? { published: true } : {}),
-        },
-      }),
-      prisma.photo.updateMany({
-        where: { projectId: project.id },
-        data: { userId: targetUser.id },
-      }),
-    ])
-    claimed++
+    try {
+      await prisma.$transaction([
+        prisma.project.update({
+          where: { id: project.id },
+          data: {
+            userId: targetUser.id,
+            ...(publishOnClaim ? { published: true } : {}),
+          },
+        }),
+        prisma.photo.updateMany({
+          where: { projectId: project.id },
+          data: { userId: targetUser.id },
+        }),
+      ])
+      claimed++
+    } catch (error) {
+      // Unique (town, year, user) conflict — skip this gallery, keep going
+      if ((error as { code?: string })?.code === 'P2002') {
+        failed.push(`${townName} ${year}`)
+        continue
+      }
+      throw error
+    }
   }
 
   revalidatePath('/admin/connect')
@@ -478,7 +495,15 @@ export async function bulkClaimGalleries(
   revalidatePath('/dashboard')
 
   if (claimed === 0) {
-    return { error: 'No claimable galleries found.' }
+    return {
+      error: failed.length > 0
+        ? `No galleries claimed — ${targetUser.name} already has projects for: ${failed.join(', ')}.`
+        : 'No claimable galleries found.',
+    }
+  }
+
+  if (failed.length > 0) {
+    return { error: `Claimed ${claimed}, but skipped (already owned): ${failed.join(', ')}.` }
   }
 
   return { error: null }

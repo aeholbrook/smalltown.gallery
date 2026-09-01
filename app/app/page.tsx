@@ -30,9 +30,10 @@ export default async function Home() {
     // DB not available is fine, map still works with static data
   }
 
-  // Get random photos for rolling gallery sidebars
-  const leftPreviews = await getRandomGalleryPreviews(12)
-  const rightPreviews = await getRandomGalleryPreviews(12)
+  // Get random photos for rolling gallery sidebars (one query, split in two)
+  const previews = await getRandomGalleryPreviews(24)
+  const leftPreviews = previews.slice(0, 12)
+  const rightPreviews = previews.length > 12 ? previews.slice(12) : leftPreviews
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">

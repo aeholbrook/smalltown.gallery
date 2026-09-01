@@ -48,9 +48,10 @@ export default async function TownLandingPage({ params }: PageProps) {
   for (const option of options) {
     photographerLinks.add(option.photographer)
   }
-  const leftPreviews = await getTownGalleryPreviews(town, 12)
-  const rightPreviews = await getTownGalleryPreviews(town, 12)
-  const wikipedia = await getTownWikipediaRecord(townName)
+  const previews = await getTownGalleryPreviews(town, 24)
+  const leftPreviews = previews.slice(0, 12)
+  const rightPreviews = previews.length > 12 ? previews.slice(12) : leftPreviews
+  const wikipedia = await getTownWikipediaRecord(townName).catch(() => null)
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">

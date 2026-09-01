@@ -27,8 +27,10 @@ export default function TownList({ dbProjects = [] }: { dbProjects?: DbProject[]
     if (!dbYears) return town
 
     const existingYears = town.years || []
-    const existingYearNums = new Set(existingYears.map(y => y.year))
-    const newYears = dbYears.filter(y => !existingYearNums.has(y.year))
+    // Dedupe by year + photographer (matching the map and search), so a new
+    // photographer's gallery in a year that also has a static entry still shows
+    const existingKeys = new Set(existingYears.map(y => `${y.year}::${y.photographer}`))
+    const newYears = dbYears.filter(y => !existingKeys.has(`${y.year}::${y.photographer}`))
     const mergedYears = [...existingYears, ...newYears].sort((a, b) => b.year - a.year)
 
     return {

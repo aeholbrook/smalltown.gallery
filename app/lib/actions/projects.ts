@@ -41,16 +41,25 @@ export async function createProject(
     return { error: `You already have a project for ${town.name} in ${year}.` }
   }
 
-  const project = await prisma.project.create({
-    data: {
-      townId,
-      year,
-      userId: session.user.id,
-      photographer: session.user.name || 'Unknown',
-      title,
-      description,
-    },
-  })
+  let project
+  try {
+    project = await prisma.project.create({
+      data: {
+        townId,
+        year,
+        userId: session.user.id,
+        photographer: session.user.name || 'Unknown',
+        title,
+        description,
+      },
+    })
+  } catch (error) {
+    // Double-submit racing past the existence check above
+    if ((error as { code?: string })?.code === 'P2002') {
+      return { error: `You already have a project for ${town.name} in ${year}.` }
+    }
+    throw error
+  }
 
   redirect(`/dashboard/projects/${project.id}`)
 }
