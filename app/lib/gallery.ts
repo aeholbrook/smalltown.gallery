@@ -223,6 +223,27 @@ export async function getTownGalleryOptions(townSlug: string): Promise<TownGalle
   }
 }
 
+export async function getAllPhotographerParams(): Promise<{ slug: string }[]> {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        role: { not: 'PENDING' },
+        projects: { some: { published: true } },
+      },
+      select: { name: true },
+    })
+
+    const slugs = new Set<string>()
+    for (const user of users) {
+      slugs.add(slugify(user.name))
+    }
+
+    return Array.from(slugs).sort().map(slug => ({ slug }))
+  } catch {
+    return []
+  }
+}
+
 export async function getAllTownParams(): Promise<{ town: string }[]> {
   try {
     const projects = await prisma.project.findMany({

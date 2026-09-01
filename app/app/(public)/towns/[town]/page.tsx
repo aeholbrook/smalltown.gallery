@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${townName}, ${state} — Town Galleries`,
     description: `Browse published documentary projects for ${townName}, ${state} by year and photographer.`,
+    alternates: { canonical: `/towns/${town}` },
   }
 }
 

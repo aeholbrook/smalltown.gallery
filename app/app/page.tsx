@@ -37,6 +37,7 @@ export default async function Home() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+      <h1 className="sr-only">The Small Town Documentary Project — Southern Illinois</h1>
       <Header />
       <main className="relative flex flex-1 min-h-0">
         {/* Left rolling gallery — hidden on small screens */}

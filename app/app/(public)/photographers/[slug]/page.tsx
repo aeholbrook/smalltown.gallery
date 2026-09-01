@@ -103,6 +103,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: hasUserProfile && photographer.bio
       ? photographer.bio.slice(0, 160)
       : `View documentary projects credited to ${photographer.name}.`,
+    alternates: { canonical: `/photographers/${slug}` },
   }
 }
 

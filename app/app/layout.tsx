@@ -21,10 +21,22 @@ const ebGaramond = EB_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: "Small Town Documentary",
+  metadataBase: new URL("https://smalltown.gallery"),
+  title: {
+    default: "Small Town Documentary",
+    template: "%s — Small Town Documentary",
+  },
   description:
     "Documentary photography of small towns in Southern Illinois, a project of the Department of Cinema and Photography at Southern Illinois University.",
   keywords: ["photography", "documentary", "small towns", "Southern Illinois", "SIU"],
+  openGraph: {
+    siteName: "The Small Town Documentary Project",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 }
 
 export default function RootLayout({
