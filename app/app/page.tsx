@@ -36,7 +36,7 @@ export default async function Home() {
   const rightPreviews = previews.length > 12 ? previews.slice(12) : leftPreviews
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+    <div className="flex h-dvh flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
       <h1 className="sr-only">The Small Town Documentary Project — Southern Illinois</h1>
       <Header />
       <main className="relative flex flex-1 min-h-0">

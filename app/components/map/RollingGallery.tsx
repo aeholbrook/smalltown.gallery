@@ -19,6 +19,10 @@ export default function RollingGallery({ previews, direction = 'up' }: RollingGa
     const el = scrollRef.current
     if (!el || previews.length === 0) return
 
+    // Respect prefers-reduced-motion (WCAG 2.3.3): no auto-scroll at all
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (motionQuery.matches) return
+
     const speed = 0.25 // pixels per frame
 
     function animate() {
@@ -66,43 +70,50 @@ export default function RollingGallery({ previews, direction = 'up' }: RollingGa
 
   if (previews.length === 0) return null
 
-  // Double the items for seamless looping
-  const items = [...previews, ...previews]
+  const renderItem = (preview: GalleryPreview, i: number, decorative: boolean) => (
+    <Link
+      key={`${preview.townSlug}-${preview.photo.filename}-${i}`}
+      href={`/towns/${preview.townSlug}/${preview.year}`}
+      className="group block flex-shrink-0"
+      tabIndex={decorative ? -1 : undefined}
+    >
+      <div className="overflow-hidden rounded-lg">
+        <Image
+          src={preview.photo.src}
+          alt={decorative ? '' : `${preview.townName} — ${preview.photographer}`}
+          width={preview.photo.width || 400}
+          height={preview.photo.height || 300}
+          sizes="256px"
+          className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+      </div>
+      <div className="mt-1.5 px-0.5" style={{ fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif' }}>
+        <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
+          {preview.townName}
+        </p>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-500">
+          {preview.year} — {preview.photographer}
+        </p>
+      </div>
+    </Link>
+  )
 
   return (
     <div
       className="rolling-gallery h-full overflow-hidden"
       onMouseEnter={() => { pausedRef.current = true }}
       onMouseLeave={() => { pausedRef.current = false }}
+      onFocus={() => { pausedRef.current = true }}
+      onBlur={() => { pausedRef.current = false }}
     >
       <div ref={scrollRef} className="h-full overflow-hidden scrollbar-hide">
         <div className="flex flex-col gap-3 p-2">
-          {items.map((preview, i) => (
-            <Link
-              key={`${preview.townSlug}-${preview.photo.filename}-${i}`}
-              href={`/towns/${preview.townSlug}/${preview.year}`}
-              className="group block flex-shrink-0"
-            >
-              <div className="overflow-hidden rounded-lg">
-                <Image
-                  src={preview.photo.src}
-                  alt={`${preview.townName} — ${preview.photographer}`}
-                  width={preview.photo.width || 400}
-                  height={preview.photo.height || 300}
-                  sizes="256px"
-                  className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
-              <div className="mt-1.5 px-0.5" style={{ fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif' }}>
-                <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
-                  {preview.townName}
-                </p>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-500">
-                  {preview.year} — {preview.photographer}
-                </p>
-              </div>
-            </Link>
-          ))}
+          {previews.map((preview, i) => renderItem(preview, i, false))}
+          {/* Second copy exists only for the seamless loop — hide it from AT
+              and the tab order so users don't traverse everything twice */}
+          <div aria-hidden="true" className="contents">
+            {previews.map((preview, i) => renderItem(preview, i, true))}
+          </div>
         </div>
       </div>
     </div>

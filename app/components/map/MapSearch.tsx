@@ -23,8 +23,10 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
   const [query, setQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [filter, setFilter] = useState<'all' | 'photos' | 'no-photos'>('all')
+  const [activeIndex, setActiveIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const mergedTowns = useMemo(() => {
     if (dbProjects.length === 0) return allTowns
@@ -162,6 +164,19 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
     }
   }, [onTownFocus, router])
 
+  // Reset keyboard highlight when the result set changes
+  useEffect(() => {
+    setActiveIndex(-1)
+  }, [q, filter, showResults])
+
+  // Keep the highlighted option scrolled into view
+  useEffect(() => {
+    if (activeIndex < 0) return
+    listRef.current
+      ?.querySelector(`#map-search-option-${activeIndex}`)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
+
   // Close on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -199,6 +214,12 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-label="Search towns, years, photographers"
+          aria-expanded={showResults}
+          aria-controls="map-search-listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={activeIndex >= 0 ? `map-search-option-${activeIndex}` : undefined}
           placeholder="Search towns, years, photographers"
           value={query}
           onChange={(e) => {
@@ -206,11 +227,26 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
             setShowResults(true)
           }}
           onFocus={() => setShowResults(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              setShowResults(true)
+              setActiveIndex(prev => (prev + 1) % Math.max(results.length, 1))
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              setShowResults(true)
+              setActiveIndex(prev => (prev <= 0 ? results.length - 1 : prev - 1))
+            } else if (e.key === 'Enter' && showResults && activeIndex >= 0 && results[activeIndex]) {
+              e.preventDefault()
+              handleSelect(results[activeIndex])
+            }
+          }}
           className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm pl-10 pr-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 transition-colors"
         />
         {query && (
           <button
             onClick={() => { setQuery(''); setShowResults(true) }}
+            aria-label="Clear search"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,15 +281,20 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
           </div>
 
           {/* Town list */}
-          <div className="py-1">
+          <div ref={listRef} id="map-search-listbox" role="listbox" aria-label="Search results" className="py-1">
             {results.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-zinc-400 dark:text-zinc-500">No matches found</div>
+              <div className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">No matches found</div>
             ) : (
-              results.map(result => (
+              results.map((result, index) => (
                 <button
                   key={result.key}
+                  id={`map-search-option-${index}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
                   onClick={() => handleSelect(result)}
-                  className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                    index === activeIndex ? 'bg-zinc-100 dark:bg-zinc-800' : ''
+                  }`}
                 >
                   {result.type === 'photographer-profile' ? (
                     <span className="h-2 w-2 rounded-full flex-shrink-0 bg-cyan-400" />
@@ -290,7 +331,7 @@ export default function MapSearch({ onTownFocus, dbProjects = [] }: MapSearchPro
           </div>
 
           {/* Result count */}
-          <div className="border-t border-zinc-200 dark:border-zinc-700 px-4 py-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+          <div aria-live="polite" className="border-t border-zinc-200 dark:border-zinc-700 px-4 py-1.5 text-xs text-zinc-600 dark:text-zinc-400">
             {results.length} results
           </div>
         </div>

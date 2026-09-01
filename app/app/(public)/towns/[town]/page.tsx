@@ -55,7 +55,7 @@ export default async function TownLandingPage({ params }: PageProps) {
   const wikipedia = await getTownWikipediaRecord(townName).catch(() => null)
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+    <div className="flex h-dvh flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
       <Header />
       <main className="relative flex flex-1 min-h-0">
         <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 transition-colors">

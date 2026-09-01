@@ -21,6 +21,14 @@ export function Lightbox({ galleryRef }: LightboxProps) {
       paddingFn: () => ({ top: 40, bottom: 40, left: 20, right: 20 }),
     })
 
+    // Carry the thumbnail's alt text over to the full-size lightbox image
+    // (PhotoSwipe renders it with empty alt otherwise)
+    lightbox.addFilter('itemData', (itemData) => {
+      const thumb = itemData.element?.querySelector('img')
+      if (thumb?.alt) itemData.alt = thumb.alt
+      return itemData
+    })
+
     lightbox.on('uiRegister', () => {
       lightbox.pswp?.ui?.registerElement({
         name: 'custom-caption',

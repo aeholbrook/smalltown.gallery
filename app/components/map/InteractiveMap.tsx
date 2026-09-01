@@ -376,7 +376,7 @@ export default function InteractiveMap({
       <div ref={mapContainer} className="h-full w-full" />
       {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 transition-colors">
-          <div className="text-zinc-500 text-sm">Loading map...</div>
+          <div className="text-zinc-600 dark:text-zinc-400 text-sm">Loading map...</div>
         </div>
       )}
     </div>

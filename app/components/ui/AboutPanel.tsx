@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import Modal from './Modal'
 
 export default function AboutPanel() {
   const [open, setOpen] = useState(false)
@@ -15,23 +15,13 @@ export default function AboutPanel() {
         About
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60"
-            onClick={() => setOpen(false)}
-          />
-          <div className="relative w-full max-w-2xl max-h-[70vh] overflow-y-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-t-xl sm:rounded-xl p-6 sm:p-8 animate-slide-up transition-colors">
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">
-              About Small Town Documentary
-            </h2>
-            <div className="space-y-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="About Small Town Documentary"
+        maxWidthClass="max-w-2xl"
+      >
+        <div className="space-y-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300" style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}>
               <p>
                 Professor Dan Overturf started the Small Town Documentary class
                 in August 1996, in the Department of Cinema and Photography at
@@ -92,10 +82,8 @@ export default function AboutPanel() {
                 but the Small Town Documentary class has been a uniquely
                 splendid experience. Thank you all. — Dan
               </p>
-            </div>
-          </div>
         </div>
-      )}
+      </Modal>
     </>
   )
 }
