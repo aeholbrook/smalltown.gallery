@@ -90,6 +90,7 @@ async function migrateOne(photo: Candidate) {
       pathname: key,
       body: bytes,
       contentType: guessContentType(photo.filename),
+      cacheControl: 'public, max-age=31536000, immutable',
     })
   }
 

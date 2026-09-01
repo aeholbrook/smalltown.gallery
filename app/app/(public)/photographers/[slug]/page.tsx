@@ -12,7 +12,8 @@ interface PageProps {
   params: Promise<{ slug: string }>
 }
 
-export const dynamic = 'force-dynamic'
+// ISR: pages regenerate hourly and on-demand via revalidatePublicProject.
+export const revalidate = 3600
 
 interface PhotographerProfileData {
   id: string

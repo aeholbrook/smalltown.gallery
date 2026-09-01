@@ -130,6 +130,7 @@ async function uploadPhoto(townName: string, year: number, filePath: string, fil
     pathname: blobPath,
     body: file,
     contentType: 'image/jpeg',
+    cacheControl: 'public, max-age=31536000, immutable',
   })
 
   return {

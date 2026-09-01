@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { getR2PublicUrl } from '@/lib/storage/r2'
+import { revalidatePublicProject } from '@/lib/revalidate-public'
 
 interface UploadedPhotoInput {
   filename: string
@@ -29,7 +30,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing project or photos' }, { status: 400 })
   }
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { town: true },
+  })
   const isAdmin = session.user.role === 'ADMIN'
   if (!project || (!isAdmin && project.userId !== session.user.id)) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
@@ -78,6 +82,8 @@ export async function POST(request: NextRequest) {
 
     return { created, count }
   })
+
+  revalidatePublicProject(project.town.name, project.year, project.photographer)
 
   return NextResponse.json({ photos: created, count })
 }

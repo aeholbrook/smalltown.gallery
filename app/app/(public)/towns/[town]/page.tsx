@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Camera } from 'lucide-react'
-import { unstable_noStore as noStore } from 'next/cache'
 import Header from '@/components/ui/Header'
 import { slugify } from '@/lib/utils'
 import RollingGallery from '@/components/map/RollingGallery'
@@ -14,14 +13,14 @@ interface PageProps {
   params: Promise<{ town: string }>
 }
 
-export const dynamic = 'force-dynamic'
+// ISR: pages regenerate hourly and on-demand via revalidatePublicProject.
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   return getAllTownParams()
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  noStore()
   const { town } = await params
   const options = await getTownGalleryOptions(town)
   const knownTown = allTowns.find(entry => slugify(entry.name) === town)
@@ -37,7 +36,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TownLandingPage({ params }: PageProps) {
-  noStore()
   const { town } = await params
   const options = await getTownGalleryOptions(town)
   const knownTown = allTowns.find(entry => slugify(entry.name) === town)

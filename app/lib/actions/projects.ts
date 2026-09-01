@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { deleteFromR2, isR2Configured } from '@/lib/storage/r2'
 import { revalidatePath } from 'next/cache'
+import { revalidatePublicProject } from '@/lib/revalidate-public'
 import { redirect } from 'next/navigation'
 
 type ActionState = { error: string | null }
@@ -66,7 +67,10 @@ export async function updateProject(
   const description = (formData.get('description') as string)?.trim() || null
   const notes = (formData.get('notes') as string)?.trim() || null
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { town: true },
+  })
   const isAdmin = session.user.role === 'ADMIN'
   if (!project || (!isAdmin && project.userId !== session.user.id)) {
     return { error: 'Project not found.', success: false }
@@ -80,6 +84,7 @@ export async function updateProject(
   revalidatePath(`/dashboard/projects/${projectId}`)
   revalidatePath(`/admin/projects/${projectId}`)
   revalidatePath('/admin/projects')
+  revalidatePublicProject(project.town.name, project.year, project.photographer)
   return { error: null, success: true }
 }
 
@@ -92,7 +97,10 @@ export async function toggleProjectPublished(
 
   const projectId = formData.get('projectId') as string
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } })
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { town: true },
+  })
   const isAdmin = session.user.role === 'ADMIN'
   if (!project || (!isAdmin && project.userId !== session.user.id)) {
     return { error: 'Project not found.' }
@@ -107,6 +115,7 @@ export async function toggleProjectPublished(
   revalidatePath(`/admin/projects/${projectId}`)
   revalidatePath('/dashboard')
   revalidatePath('/admin/projects')
+  revalidatePublicProject(project.town.name, project.year, project.photographer)
   return { error: null }
 }
 
@@ -121,7 +130,7 @@ export async function deleteProject(
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    include: { photos: true },
+    include: { photos: true, town: true },
   })
   const isAdmin = session.user.role === 'ADMIN'
   if (!project || (!isAdmin && project.userId !== session.user.id)) {
@@ -142,6 +151,8 @@ export async function deleteProject(
   }
 
   await prisma.project.delete({ where: { id: projectId } })
+
+  revalidatePublicProject(project.town.name, project.year, project.photographer)
 
   if (isAdmin) {
     redirect('/admin/projects')

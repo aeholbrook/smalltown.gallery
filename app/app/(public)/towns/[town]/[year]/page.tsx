@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { unstable_noStore as noStore } from 'next/cache'
 import { getGalleryData, getAllGalleryParams } from '@/lib/gallery'
 import { PhotoGallery } from '@/components/gallery/PhotoGallery'
 import { PhotographerInfo } from '@/components/gallery/PhotographerInfo'
@@ -13,14 +12,14 @@ interface PageProps {
   params: Promise<{ town: string; year: string }>
 }
 
-export const dynamic = 'force-dynamic'
+// ISR: pages regenerate hourly and on-demand via revalidatePublicProject.
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   return getAllGalleryParams()
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  noStore()
   const { town, year } = await params
   const gallery = await getGalleryData(town, parseInt(year))
   if (!gallery) return { title: 'Not Found' }
@@ -32,7 +31,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function GalleryPage({ params }: PageProps) {
-  noStore()
   const { town, year } = await params
   const yearNum = parseInt(year)
 
