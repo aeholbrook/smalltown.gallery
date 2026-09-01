@@ -105,7 +105,7 @@ body {
 }
 
 .map-popup-container .mapboxgl-popup-close-button {
-  color: #71717a;
+  color: #52525b;
   font-size: 18px;
   padding: 4px 8px;
   right: 2px;
@@ -166,7 +166,7 @@ body {
 
 .map-popup-link em {
   font-style: italic;
-  color: #71717a;
+  color: #52525b;
 }
 
 .map-popup-link:hover em {
@@ -175,7 +175,7 @@ body {
 
 .map-popup-empty {
   font-size: 13px;
-  color: #71717a;
+  color: #52525b;
   margin: 0;
 }
 
@@ -223,7 +223,7 @@ body {
 }
 
 .dark .map-popup-link em {
-  color: #71717a;
+  color: #a1a1aa;
 }
 
 .dark .map-popup-link:hover em {
@@ -231,7 +231,7 @@ body {
 }
 
 .dark .map-popup-empty {
-  color: #71717a;
+  color: #a1a1aa;
 }
 
 /* Mapbox navigation control overrides (dark mode only) */

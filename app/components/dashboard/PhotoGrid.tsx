@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState, useTransition } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Trash2,
@@ -119,13 +120,13 @@ function PhotoCard({
 
   return (
     <div className="group relative">
-      <div className="aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative aspect-square overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+        <Image
           src={photo.blobUrl}
           alt={photo.caption || photo.filename}
-          className="h-full w-full object-cover"
-          loading="lazy"
+          fill
+          sizes="(min-width: 640px) 200px, 50vw"
+          className="object-cover"
         />
       </div>
 

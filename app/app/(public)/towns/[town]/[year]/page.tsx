@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { unstable_noStore as noStore } from 'next/cache'
 import { getGalleryData, getAllGalleryParams } from '@/lib/gallery'
 import { PhotoGallery } from '@/components/gallery/PhotoGallery'
 import { PhotographerInfo } from '@/components/gallery/PhotographerInfo'
@@ -13,26 +12,37 @@ interface PageProps {
   params: Promise<{ town: string; year: string }>
 }
 
-export const dynamic = 'force-dynamic'
+// ISR: pages regenerate hourly and on-demand via revalidatePublicProject.
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   return getAllGalleryParams()
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  noStore()
   const { town, year } = await params
   const gallery = await getGalleryData(town, parseInt(year))
   if (!gallery) return { title: 'Not Found' }
 
+  const description = `Documentary photography of ${gallery.townName}, Illinois by ${gallery.photographer} (${gallery.year}).`
+  const firstPhoto = gallery.photos[0]
+
   return {
-    title: `${gallery.townName}, Illinois (${gallery.year}) — Small Town Documentary`,
-    description: `Documentary photography of ${gallery.townName}, Illinois by ${gallery.photographer} (${gallery.year}).`,
+    title: `${gallery.townName}, Illinois (${gallery.year})`,
+    description,
+    alternates: { canonical: `/towns/${town}/${gallery.year}` },
+    openGraph: {
+      title: `${gallery.townName}, Illinois (${gallery.year})`,
+      description,
+      url: `/towns/${town}/${gallery.year}`,
+      images: firstPhoto
+        ? [{ url: firstPhoto.src, width: firstPhoto.width || undefined, height: firstPhoto.height || undefined }]
+        : undefined,
+    },
   }
 }
 
 export default async function GalleryPage({ params }: PageProps) {
-  noStore()
   const { town, year } = await params
   const yearNum = parseInt(year)
 
@@ -41,8 +51,29 @@ export default async function GalleryPage({ params }: PageProps) {
   const gallery = await getGalleryData(town, yearNum)
   if (!gallery || gallery.photos.length === 0) notFound()
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ImageGallery',
+    name: `${gallery.townName}, Illinois (${gallery.year})`,
+    url: `https://smalltown.gallery/towns/${town}/${gallery.year}`,
+    creator: { '@type': 'Person', name: gallery.photographer },
+    about: { '@type': 'Place', name: `${gallery.townName}, Illinois` },
+    image: gallery.photos.slice(0, 12).map(photo => ({
+      '@type': 'ImageObject',
+      contentUrl: photo.src,
+      name: photo.title || undefined,
+      creator: { '@type': 'Person', name: gallery.photographer },
+      dateCreated: String(gallery.year),
+      locationCreated: { '@type': 'Place', name: `${gallery.townName}, Illinois` },
+    })),
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Link

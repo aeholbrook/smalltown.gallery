@@ -7,12 +7,12 @@ import RollingGallery from '@/components/map/RollingGallery'
 import { prisma } from '@/lib/db'
 import { slugify } from '@/lib/utils'
 import { getRandomGalleryPreviews } from '@/lib/gallery'
-import { unstable_noStore as noStore } from 'next/cache'
 
-export const dynamic = 'force-dynamic'
+// ISR: regenerate every 15 minutes (also rotates the random sidebar previews)
+// and on-demand via revalidatePublicProject when content changes.
+export const revalidate = 900
 
 export default async function Home() {
-  noStore()
   // Fetch published DB projects to merge into map data
   let dbProjects: { townName: string; slug: string; year: number; photographer: string }[] = []
   try {
@@ -30,12 +30,14 @@ export default async function Home() {
     // DB not available is fine, map still works with static data
   }
 
-  // Get random photos for rolling gallery sidebars
-  const leftPreviews = await getRandomGalleryPreviews(12)
-  const rightPreviews = await getRandomGalleryPreviews(12)
+  // Get random photos for rolling gallery sidebars (one query, split in two)
+  const previews = await getRandomGalleryPreviews(24)
+  const leftPreviews = previews.slice(0, 12)
+  const rightPreviews = previews.length > 12 ? previews.slice(12) : leftPreviews
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+    <div className="flex h-dvh flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+      <h1 className="sr-only">The Small Town Documentary Project — Southern Illinois</h1>
       <Header />
       <main className="relative flex flex-1 min-h-0">
         {/* Left rolling gallery — hidden on small screens */}

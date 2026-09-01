@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
 
 interface PhotographerInfoProps {
   descriptionHtml: string
@@ -29,8 +33,12 @@ export function PhotographerInfo({ descriptionHtml }: PhotographerInfoProps) {
         <div
           className="mt-4 max-w-none text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 [&_p]:mb-4 [&_p]:leading-relaxed [&_em]:text-zinc-500 dark:[&_em]:text-zinc-400"
           style={{ fontFamily: 'var(--font-garamond), Georgia, "Times New Roman", serif' }}
-          dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-        />
+        >
+          {/* rehypeRaw parses legacy HTML descriptions; rehypeSanitize strips anything executable */}
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]}>
+            {descriptionHtml}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   )

@@ -6,8 +6,9 @@ import { prisma } from '../lib/db'
 import { allTowns } from '../lib/towns'
 import { assertR2Configured, uploadBufferToR2 } from '../lib/storage/r2'
 
-const API_KEY = '02a9672f3e09a525145b60466913a599'
-const USER_ID = '30563993@N07'
+const API_KEY = process.env.FLICKR_API_KEY ?? ''
+if (!API_KEY) throw new Error('FLICKR_API_KEY must be set')
+const USER_ID = process.env.FLICKR_USER_ID || '30563993@N07'
 const FLICKR_API = 'https://www.flickr.com/services/rest/'
 const PLACEHOLDER_DOMAIN = 'smalltown.gallery'
 

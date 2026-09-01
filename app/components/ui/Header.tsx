@@ -20,10 +20,10 @@ export default function Header() {
               alt="Southern Illinois Salukis logo"
               className="h-12 w-12 object-contain grayscale sm:h-24 sm:w-24"
             />
-            <h1 className="film-title max-w-[58vw] truncate text-lg tracking-wide text-zinc-900 dark:text-white sm:max-w-none sm:text-3xl">
+            <p className="film-title max-w-[58vw] truncate text-lg tracking-wide text-zinc-900 dark:text-white sm:max-w-none sm:text-3xl">
               <span className="sm:hidden">Small Town Doc</span>
               <span className="hidden sm:inline">The Small Town Documentary Project</span>
-            </h1>
+            </p>
           </div>
         </Link>
 
@@ -31,6 +31,9 @@ export default function Header() {
         <nav className="hidden sm:flex items-center gap-6 text-sm text-zinc-500 dark:text-zinc-400">
           <Link href="/" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
             Map
+          </Link>
+          <Link href="/towns" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
+            Towns
           </Link>
           <Link href="/about" className="hover:text-zinc-900 dark:hover:text-white transition-colors">
             About
@@ -85,6 +88,13 @@ export default function Header() {
             className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             Map
+          </Link>
+          <Link
+            href="/towns"
+            onClick={() => setMobileOpen(false)}
+            className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          >
+            Towns
           </Link>
           <Link
             href="/about"

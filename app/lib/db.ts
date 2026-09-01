@@ -11,6 +11,14 @@ const connectionString =
   process.env.POSTGRES_URL_NON_POOLING ||
   ''
 
+if (!connectionString) {
+  // Fail loudly: an empty connection string used to slip through and surface
+  // as confusing per-query errors (and silently empty public pages).
+  throw new Error(
+    'No database URL configured. Set DATABASE_URL (or POSTGRES_URL / POSTGRES_PRISMA_URL / POSTGRES_URL_NON_POOLING).'
+  )
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }

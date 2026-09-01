@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Image from 'next/image'
 import type { GalleryPhoto } from '@/lib/gallery'
 import { Lightbox } from './Lightbox'
 
@@ -17,7 +18,10 @@ export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
     if (!gallery) return
 
     const cleanup: Array<() => void> = []
-    const anchors = Array.from(gallery.querySelectorAll('a[data-pswp-width]'))
+    // Only photos with unknown stored dimensions fall back to measuring the
+    // rendered image; measured sizes reflect the optimized variant, so photos
+    // with real DB dimensions must not be overwritten here.
+    const anchors = Array.from(gallery.querySelectorAll('a[data-pswp-auto]'))
 
     for (const anchor of anchors) {
       const img = anchor.querySelector('img')
@@ -55,19 +59,23 @@ export function PhotoGallery({ photos, townName }: PhotoGalleryProps) {
       >
         {photos.map((photo, index) => (
           <a
-            key={photo.filename}
+            key={photo.src}
             href={photo.src}
             data-pswp-width={photo.width || 1600}
             data-pswp-height={photo.height || 1200}
+            data-pswp-auto={photo.width ? undefined : ''}
             data-pswp-caption={photo.title?.trim() || undefined}
             className="group relative mb-2 block overflow-hidden rounded bg-zinc-200 dark:bg-zinc-800"
             target="_blank"
             rel="noreferrer"
           >
-            <img
+            <Image
               src={photo.src}
               alt={photo.title || `${townName} photograph ${index + 1}`}
-              loading={index < 10 ? 'eager' : 'lazy'}
+              width={photo.width || 1600}
+              height={photo.height || 1200}
+              sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
+              priority={index < 4}
               className="w-full h-auto block transition-transform duration-300 group-hover:scale-105"
             />
             {photo.title && (

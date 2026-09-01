@@ -8,8 +8,11 @@ const adapter = new PrismaPg({ connectionString })
 const prisma = new PrismaClient({ adapter })
 
 async function seedAdmin() {
-  const email = process.env.ADMIN_EMAIL || 'admin@smalltown.gallery'
-  const password = process.env.ADMIN_PASSWORD || 'admin123'
+  const email = process.env.ADMIN_EMAIL
+  const password = process.env.ADMIN_PASSWORD
+  if (!email || !password) {
+    throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD must be set to seed the admin user')
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {

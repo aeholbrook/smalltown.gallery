@@ -18,34 +18,67 @@ export interface GalleryData {
   photos: GalleryPhoto[]
 }
 
+const photoSelect = {
+  filename: true,
+  blobUrl: true,
+  width: true,
+  height: true,
+  title: true,
+  caption: true,
+} as const
+
+type SelectedPhoto = {
+  filename: string
+  blobUrl: string
+  width: number
+  height: number
+  title: string | null
+  caption: string | null
+}
+
+function toGalleryPhoto(p: SelectedPhoto): GalleryPhoto {
+  return {
+    filename: p.filename,
+    src: p.blobUrl,
+    width: p.width,
+    height: p.height,
+    // Dashboard-edited captions win over import-time titles
+    title: p.caption ?? p.title,
+  }
+}
+
+// Towns table is small (~92 rows); resolving a slug through it avoids
+// loading every published project (and its photos) just to match one slug.
+async function resolveTownBySlug(townSlug: string) {
+  const towns = await prisma.town.findMany({ select: { id: true, name: true } })
+  return towns.find(town => slugify(town.name) === townSlug) ?? null
+}
+
 async function getDbGalleryData(townSlug: string, year: number): Promise<GalleryData | null> {
   try {
-    // Resolve by slug against published projects for the year, not by plain
-    // slug-to-name replacement. This avoids 404s for towns with punctuation.
-    const projects = await prisma.project.findMany({
-      where: { year, published: true },
-      include: {
-        town: true,
-        photos: { orderBy: { order: 'asc' } },
+    const town = await resolveTownBySlug(townSlug)
+    if (!town) return null
+
+    // Deterministic pick if two photographers published the same town+year
+    const project = await prisma.project.findFirst({
+      where: { townId: town.id, year, published: true },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        photographer: true,
+        description: true,
+        photos: { orderBy: { order: 'asc' }, select: photoSelect },
       },
     })
 
-    const project = projects.find(p => slugify(p.town.name) === townSlug)
     if (!project || project.photos.length === 0) return null
 
     return {
-      townName: project.town.name,
+      townName: town.name,
       townSlug,
       year,
       photographer: project.photographer,
       description: project.description,
-      photos: project.photos.map(p => ({
-        filename: p.filename,
-        src: p.blobUrl,
-        width: p.width,
-        height: p.height,
-        title: p.title,
-      })),
+      photos: project.photos.map(toGalleryPhoto),
     }
   } catch {
     return null
@@ -73,43 +106,53 @@ export interface TownGalleryOption {
   photoCount: number
 }
 
+function shuffle<T>(items: T[]): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[items[i], items[j]] = [items[j], items[i]]
+  }
+  return items
+}
+
+type PreviewProject = {
+  year: number
+  photographer: string
+  town: { name: string }
+  photos: SelectedPhoto[]
+}
+
+function toPreviews(projects: PreviewProject[]): GalleryPreview[] {
+  const previews: GalleryPreview[] = []
+  for (const project of projects) {
+    const townSlug = slugify(project.town.name)
+    for (const photo of project.photos) {
+      previews.push({
+        townName: project.town.name,
+        townSlug,
+        year: project.year,
+        photographer: project.photographer,
+        photo: toGalleryPhoto(photo),
+      })
+    }
+  }
+  return previews
+}
+
+const previewProjectSelect = {
+  year: true,
+  photographer: true,
+  town: { select: { name: true } },
+  photos: { orderBy: { order: 'asc' as const }, select: photoSelect },
+} as const
+
 export async function getRandomGalleryPreviews(count: number = 20): Promise<GalleryPreview[]> {
   try {
     const projects = await prisma.project.findMany({
       where: { published: true },
-      include: {
-        town: true,
-        photos: {
-          orderBy: { order: 'asc' },
-        },
-      },
+      select: previewProjectSelect,
     })
 
-    const previews: GalleryPreview[] = []
-    for (const project of projects) {
-      for (const photo of project.photos) {
-        previews.push({
-          townName: project.town.name,
-          townSlug: slugify(project.town.name),
-          year: project.year,
-          photographer: project.photographer,
-          photo: {
-            filename: photo.filename,
-            src: photo.blobUrl,
-            width: photo.width,
-            height: photo.height,
-            title: photo.title,
-          },
-        })
-      }
-    }
-
-    for (let i = previews.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[previews[i], previews[j]] = [previews[j], previews[i]]
-    }
-
-    return previews.slice(0, count)
+    return shuffle(toPreviews(projects)).slice(0, count)
   } catch {
     return []
   }
@@ -117,42 +160,15 @@ export async function getRandomGalleryPreviews(count: number = 20): Promise<Gall
 
 export async function getTownGalleryPreviews(townSlug: string, count: number = 20): Promise<GalleryPreview[]> {
   try {
+    const town = await resolveTownBySlug(townSlug)
+    if (!town) return []
+
     const projects = await prisma.project.findMany({
-      where: { published: true },
-      include: {
-        town: true,
-        photos: {
-          orderBy: { order: 'asc' },
-        },
-      },
+      where: { townId: town.id, published: true },
+      select: previewProjectSelect,
     })
 
-    const previews: GalleryPreview[] = []
-    for (const project of projects) {
-      if (slugify(project.town.name) !== townSlug) continue
-      for (const photo of project.photos) {
-        previews.push({
-          townName: project.town.name,
-          townSlug: slugify(project.town.name),
-          year: project.year,
-          photographer: project.photographer,
-          photo: {
-            filename: photo.filename,
-            src: photo.blobUrl,
-            width: photo.width,
-            height: photo.height,
-            title: photo.title,
-          },
-        })
-      }
-    }
-
-    for (let i = previews.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[previews[i], previews[j]] = [previews[j], previews[i]]
-    }
-
-    return previews.slice(0, count)
+    return shuffle(toPreviews(projects)).slice(0, count)
   } catch {
     return []
   }
@@ -162,7 +178,7 @@ export async function getAllGalleryParams(): Promise<{ town: string; year: strin
   try {
     const projects = await prisma.project.findMany({
       where: { published: true },
-      include: { town: true },
+      select: { year: true, town: { select: { name: true } } },
     })
 
     const params = new Map<string, { town: string; year: string }>()
@@ -180,22 +196,49 @@ export async function getAllGalleryParams(): Promise<{ town: string; year: strin
 
 export async function getTownGalleryOptions(townSlug: string): Promise<TownGalleryOption[]> {
   try {
+    const town = await resolveTownBySlug(townSlug)
+    if (!town) return []
+
     const projects = await prisma.project.findMany({
-      where: { published: true },
-      include: { town: true, _count: { select: { photos: true } } },
+      where: { townId: town.id, published: true },
+      select: {
+        id: true,
+        year: true,
+        photographer: true,
+        _count: { select: { photos: true } },
+      },
       orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
     })
 
-    return projects
-      .filter(project => slugify(project.town.name) === townSlug)
-      .map(project => ({
-        id: project.id,
-        townName: project.town.name,
-        townSlug,
-        year: project.year,
-        photographer: project.photographer,
-        photoCount: project._count.photos,
-      }))
+    return projects.map(project => ({
+      id: project.id,
+      townName: town.name,
+      townSlug,
+      year: project.year,
+      photographer: project.photographer,
+      photoCount: project._count.photos,
+    }))
+  } catch {
+    return []
+  }
+}
+
+export async function getAllPhotographerParams(): Promise<{ slug: string }[]> {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        role: { not: 'PENDING' },
+        projects: { some: { published: true } },
+      },
+      select: { name: true },
+    })
+
+    const slugs = new Set<string>()
+    for (const user of users) {
+      slugs.add(slugify(user.name))
+    }
+
+    return Array.from(slugs).sort().map(slug => ({ slug }))
   } catch {
     return []
   }
@@ -205,7 +248,7 @@ export async function getAllTownParams(): Promise<{ town: string }[]> {
   try {
     const projects = await prisma.project.findMany({
       where: { published: true },
-      include: { town: true },
+      select: { town: { select: { name: true } } },
     })
 
     const towns = new Set<string>()

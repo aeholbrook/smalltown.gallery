@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { X } from 'lucide-react'
 import { slugify } from '@/lib/utils'
+import Modal from './Modal'
 
 interface DbProject {
   townName: string
@@ -39,23 +39,8 @@ export default function PhotographerList({ dbProjects = [] }: { dbProjects?: DbP
         Photographers
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60"
-            onClick={() => setOpen(false)}
-          />
-          <div className="relative w-full max-w-xl max-h-[70vh] overflow-y-auto bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-t-xl sm:rounded-xl p-6 sm:p-8 animate-slide-up transition-colors">
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-4">
-              Photographers
-            </h2>
-            <div className="space-y-2">
+      <Modal open={open} onClose={() => setOpen(false)} title="Photographers" maxWidthClass="max-w-xl">
+        <div className="space-y-2">
               {photographers.map((photographer) => (
                 <Link
                   key={photographer.name}
@@ -75,10 +60,8 @@ export default function PhotographerList({ dbProjects = [] }: { dbProjects?: DbP
                   </div>
                 </Link>
               ))}
-            </div>
-          </div>
         </div>
-      )}
+      </Modal>
     </>
   )
 }

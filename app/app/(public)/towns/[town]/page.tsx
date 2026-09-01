@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Camera } from 'lucide-react'
-import { unstable_noStore as noStore } from 'next/cache'
 import Header from '@/components/ui/Header'
 import { slugify } from '@/lib/utils'
 import RollingGallery from '@/components/map/RollingGallery'
@@ -14,14 +13,14 @@ interface PageProps {
   params: Promise<{ town: string }>
 }
 
-export const dynamic = 'force-dynamic'
+// ISR: pages regenerate hourly and on-demand via revalidatePublicProject.
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   return getAllTownParams()
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  noStore()
   const { town } = await params
   const options = await getTownGalleryOptions(town)
   const knownTown = allTowns.find(entry => slugify(entry.name) === town)
@@ -33,11 +32,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${townName}, ${state} — Town Galleries`,
     description: `Browse published documentary projects for ${townName}, ${state} by year and photographer.`,
+    alternates: { canonical: `/towns/${town}` },
   }
 }
 
 export default async function TownLandingPage({ params }: PageProps) {
-  noStore()
   const { town } = await params
   const options = await getTownGalleryOptions(town)
   const knownTown = allTowns.find(entry => slugify(entry.name) === town)
@@ -50,12 +49,13 @@ export default async function TownLandingPage({ params }: PageProps) {
   for (const option of options) {
     photographerLinks.add(option.photographer)
   }
-  const leftPreviews = await getTownGalleryPreviews(town, 12)
-  const rightPreviews = await getTownGalleryPreviews(town, 12)
-  const wikipedia = await getTownWikipediaRecord(townName)
+  const previews = await getTownGalleryPreviews(town, 24)
+  const leftPreviews = previews.slice(0, 12)
+  const rightPreviews = previews.length > 12 ? previews.slice(12) : leftPreviews
+  const wikipedia = await getTownWikipediaRecord(townName).catch(() => null)
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
+    <div className="flex h-dvh flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-950 transition-colors">
       <Header />
       <main className="relative flex flex-1 min-h-0">
         <div className="hidden lg:block w-56 xl:w-64 flex-shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 transition-colors">

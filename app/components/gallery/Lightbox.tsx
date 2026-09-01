@@ -21,6 +21,14 @@ export function Lightbox({ galleryRef }: LightboxProps) {
       paddingFn: () => ({ top: 40, bottom: 40, left: 20, right: 20 }),
     })
 
+    // Carry the thumbnail's alt text over to the full-size lightbox image
+    // (PhotoSwipe renders it with empty alt otherwise)
+    lightbox.addFilter('itemData', (itemData) => {
+      const thumb = itemData.element?.querySelector('img')
+      if (thumb?.alt) itemData.alt = thumb.alt
+      return itemData
+    })
+
     lightbox.on('uiRegister', () => {
       lightbox.pswp?.ui?.registerElement({
         name: 'custom-caption',
@@ -33,10 +41,10 @@ export function Lightbox({ galleryRef }: LightboxProps) {
             const currSlideElement = pswp.currSlide?.data.element as HTMLElement | undefined
             const caption = currSlideElement?.getAttribute('data-pswp-caption')?.trim() || ''
             if (caption) {
-              el.innerHTML = caption
+              el.textContent = caption
               el.classList.remove('pswp__custom-caption--empty')
             } else {
-              el.innerHTML = ''
+              el.textContent = ''
               el.classList.add('pswp__custom-caption--empty')
             }
           }

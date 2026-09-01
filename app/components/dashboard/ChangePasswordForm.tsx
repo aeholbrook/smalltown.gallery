@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { changePassword } from '@/lib/actions/auth'
 
 export function ChangePasswordForm() {
-  const [state, action, pending] = useActionState(changePassword, { error: null })
+  const [state, action, pending] = useActionState(changePassword, { error: null, success: false })
 
   return (
     <form action={action} className="space-y-4">
@@ -13,7 +13,7 @@ export function ChangePasswordForm() {
           {state.error}
         </div>
       )}
-      {state?.error === null && !pending && state !== null && (
+      {state?.success && !pending && (
         <div className="rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-400">
           Password changed successfully.
         </div>

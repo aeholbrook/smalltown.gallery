@@ -365,15 +365,17 @@ export default function InteractiveMap({
     m.once('style.load', () => {
       addTownLayers(m, mergedTowns, isDark)
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme, mergedTowns])
+  // mapLoaded is a dependency so a theme toggle made while the map was still
+  // loading is applied once loading finishes (prevThemeRef only advances when
+  // the style is actually swapped).
+  }, [theme, mergedTowns, mapLoaded])
 
   return (
     <div className="relative h-full w-full">
       <div ref={mapContainer} className="h-full w-full" />
       {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 transition-colors">
-          <div className="text-zinc-500 text-sm">Loading map...</div>
+          <div className="text-zinc-600 dark:text-zinc-400 text-sm">Loading map...</div>
         </div>
       )}
     </div>

@@ -86,34 +86,34 @@ export async function registerUser(
 // --- Password Change (for logged-in users) ---
 
 export async function changePassword(
-  _prevState: ActionState,
+  _prevState: ActionStateWithSuccess,
   formData: FormData
-): Promise<ActionState> {
+): Promise<ActionStateWithSuccess> {
   const session = await auth()
-  if (!session?.user?.id) return { error: 'Unauthorized' }
+  if (!session?.user?.id) return { error: 'Unauthorized', success: false }
 
   const currentPassword = formData.get('currentPassword') as string
   const newPassword = formData.get('newPassword') as string
   const confirmPassword = formData.get('confirmPassword') as string
 
   if (!currentPassword || !newPassword || !confirmPassword) {
-    return { error: 'All fields are required.' }
+    return { error: 'All fields are required.', success: false }
   }
 
   if (newPassword.length < 8) {
-    return { error: 'New password must be at least 8 characters.' }
+    return { error: 'New password must be at least 8 characters.', success: false }
   }
 
   if (newPassword !== confirmPassword) {
-    return { error: 'New passwords do not match.' }
+    return { error: 'New passwords do not match.', success: false }
   }
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } })
-  if (!user) return { error: 'User not found.' }
+  if (!user) return { error: 'User not found.', success: false }
 
   const isValid = await compare(currentPassword, user.passwordHash)
   if (!isValid) {
-    return { error: 'Current password is incorrect.' }
+    return { error: 'Current password is incorrect.', success: false }
   }
 
   const passwordHash = await hash(newPassword, 12)
@@ -123,7 +123,7 @@ export async function changePassword(
   })
 
   revalidatePath('/dashboard/profile')
-  return { error: null }
+  return { error: null, success: true }
 }
 
 // --- Password Reset Token Generation (admin can generate for any user) ---
